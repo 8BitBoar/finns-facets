@@ -1,0 +1,1481 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Finn's Facets &amp; Finds</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,500;0,600;0,700;1,500&family=Source+Sans+3:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root{
+  --verd:#2f6b62; --verd-d:#1d4641; --verd-dd:#13302c; --verd-l:#8fbfb3; --verd-wash:#dfece6;
+  --brass:#a8823f; --brass-d:#7c5f2a; --brass-l:#d8bf86;
+  --gold:#c9a227;
+  --pearl:#f4eee0; --pearl-2:#ebe2cd; --card:#fbf8f0;
+  --ink:#1d2523; --ink-2:#4a5552; --ink-3:#7b8582;
+  --line:#d8ccb0; --line-2:#c5b590;
+  --good:#2f7d4f; --bad:#a6402f; --warn:#b07b18;
+  --sea:#17383a; --sea-2:#1e4a4b; --sea-glow:#9ff0d8;
+  --shadow:0 1px 2px rgba(30,30,20,.08),0 4px 14px rgba(30,30,20,.06);
+  --r:10px;
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --pearl:#141b1a; --pearl-2:#1b2422; --card:#1f2a28;
+    --ink:#ece5d4; --ink-2:#bfb8a6; --ink-3:#8c8778;
+    --line:#33413e; --line-2:#465752; --verd-wash:#23332f;
+    --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+  }
+}
+:root[data-theme="dark"]{
+  --pearl:#141b1a; --pearl-2:#1b2422; --card:#1f2a28;
+  --ink:#ece5d4; --ink-2:#bfb8a6; --ink-3:#8c8778;
+  --line:#33413e; --line-2:#465752; --verd-wash:#23332f;
+  --shadow:0 1px 2px rgba(0,0,0,.3),0 4px 14px rgba(0,0,0,.25);
+}
+*{box-sizing:border-box}
+html,body{margin:0;background:var(--pearl);color:var(--ink);font:15px/1.45 "Source Sans 3",system-ui,sans-serif;font-variant-numeric:tabular-nums}
+h1,h2,h3,h4{font-family:"Cormorant Garamond",Georgia,serif;margin:0;font-weight:600;letter-spacing:.01em}
+h2{font-size:1.6rem} h3{font-size:1.25rem} h4{font-size:1.05rem}
+button,select,input{font:inherit;color:inherit}
+a{color:var(--verd)}
+.wrap{max-width:1240px;margin:0 auto;padding:0 16px}
+
+/* header */
+header{background:linear-gradient(180deg,var(--verd-dd),var(--verd-d));color:#f4eee0;border-bottom:3px solid var(--brass)}
+.hdr{display:flex;align-items:center;gap:14px;padding:12px 0}
+.hdr h1{font-size:1.75rem;line-height:1;color:#f4eee0}
+.hdr .sub{font-size:.8rem;color:var(--brass-l);letter-spacing:.12em;text-transform:uppercase}
+.seal{width:52px;height:52px;flex:none}
+.status{display:flex;flex-wrap:wrap;gap:6px 8px;padding:0 0 12px;align-items:center}
+.pill{background:rgba(255,255,255,.08);border:1px solid rgba(216,191,134,.35);border-radius:999px;padding:4px 11px;font-size:.88rem;white-space:nowrap}
+.pill b{color:var(--brass-l);font-weight:600}
+.pill.clock{font-size:1rem;background:rgba(201,162,39,.14);border-color:var(--brass)}
+.pill.late{border-color:#e0a35a;color:#ffd9a6}
+.spacer{flex:1}
+.sync{display:inline-flex;align-items:center;gap:6px}
+.dot{width:9px;height:9px;border-radius:50%;background:#888;display:inline-block}
+.dot.ok{background:#62d39a}.dot.dirty{background:#e8b04a}.dot.err{background:#e06a55}.dot.off{background:#888}
+nav.tabs{display:flex;gap:2px;overflow-x:auto;scrollbar-width:none}
+nav.tabs button{background:none;border:0;color:#cfe3dc;padding:9px 14px;border-radius:8px 8px 0 0;cursor:pointer;white-space:nowrap;font-weight:600;font-size:.93rem}
+nav.tabs button.on{background:var(--pearl);color:var(--verd-d)}
+nav.tabs button .badge{background:var(--brass);color:#fff;border-radius:999px;font-size:.72rem;padding:0 6px;margin-left:5px}
+
+main{padding:18px 0 60px}
+.grid{display:grid;gap:16px}
+.g2{grid-template-columns:minmax(0,1.6fr) minmax(0,1fr)}
+.g3{grid-template-columns:repeat(3,minmax(0,1fr))}
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(330px,1fr));gap:14px}
+@media (max-width:860px){.g2,.g3{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px}
+.panel h3{margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.panel h3 .meta{margin-left:auto;font-family:"Source Sans 3";font-size:.85rem;color:var(--ink-3);font-weight:500}
+.muted{color:var(--ink-3)} .small{font-size:.85rem} .tiny{font-size:.76rem}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.between{justify-content:space-between}
+hr.rule{border:0;border-top:1px dashed var(--line-2);margin:10px 0}
+
+.btn{background:var(--verd);color:#fff;border:1px solid var(--verd-d);border-radius:8px;padding:6px 12px;cursor:pointer;font-weight:600;font-size:.9rem;line-height:1.2}
+.btn:hover{filter:brightness(1.08)}
+.btn:disabled{opacity:.45;cursor:not-allowed;filter:none}
+.btn.brass{background:var(--brass);border-color:var(--brass-d)}
+.btn.ghost{background:transparent;color:var(--verd);border-color:var(--line-2)}
+.btn.danger{background:var(--bad);border-color:#7c2e21}
+.btn.sm{padding:3px 9px;font-size:.82rem}
+.btn.end{background:var(--gold);border-color:var(--brass-d);color:#231a05}
+select,input[type=text],input[type=number],input[type=password]{background:var(--pearl);border:1px solid var(--line-2);border-radius:7px;padding:5px 8px;max-width:100%}
+input[type=number]{width:90px}
+label.f{display:flex;flex-direction:column;gap:3px;font-size:.84rem;color:var(--ink-2)}
+
+table{border-collapse:collapse;width:100%}
+th,td{text-align:left;padding:5px 7px;border-bottom:1px solid var(--line);vertical-align:middle}
+th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-3);font-weight:600}
+.tscroll{overflow-x:auto}
+
+.tag{display:inline-block;border-radius:999px;padding:1px 8px;font-size:.76rem;font-weight:600;border:1px solid var(--line-2);background:var(--pearl-2)}
+.tag.q-Crude{background:#e6e0d2;color:#5a5446;border-color:#cfc6b1}
+.tag.q-Fine{background:#d9ebe4;color:#1f5a4d;border-color:#a8cfc2}
+.tag.q-Perfect{background:#f6e6b0;color:#6b5108;border-color:#d8bd62}
+.tag.r-Common{color:#5f6461}.tag.r-Uncommon{color:#2f7d4f}.tag.r-Rare{color:#2b5fa0}.tag.r-Mythic{color:#a0402b}
+.tag.urgent{background:#f6d7cf;color:#8c2f1e;border-color:#e2a593}
+.tag.ok{background:#d6ecdc;color:#1f6138;border-color:#9fcfae}
+.tag.no{background:#f3dcd6;color:#8c2f1e;border-color:#e2b0a2}
+.tag.warn{background:#f6e8c8;color:#7a5410;border-color:#e0c486}
+.gemdot{width:12px;height:12px;border-radius:50%;display:inline-block;vertical-align:-1px;border:1px solid rgba(0,0,0,.25);box-shadow:inset -2px -2px 3px rgba(0,0,0,.2),inset 2px 2px 3px rgba(255,255,255,.5)}
+.shape{width:18px;height:18px;vertical-align:-4px;flex:none}
+
+/* sea map */
+.mapbox{position:relative;border-radius:var(--r);overflow:hidden;border:2px solid var(--brass);background:var(--sea)}
+.mapbox svg{display:block;width:100%;height:auto}
+.node{cursor:pointer}
+.node .ring{fill:rgba(159,240,216,.12);stroke:var(--sea-glow);stroke-width:2.5}
+.node .halo{fill:none;stroke:var(--sea-glow);stroke-opacity:.5;animation:pulse 2.6s ease-out infinite}
+.node.sel .ring{stroke:var(--gold);fill:rgba(201,162,39,.2)}
+.node text{font:600 13px "Source Sans 3";fill:#e9fff7;text-anchor:middle;pointer-events:none}
+.node text.c{fill:#ffe9a8}
+@media (max-width:600px){.node text{font-size:24px}.node .ring{stroke-width:4}}
+@keyframes pulse{0%{r:20;stroke-opacity:.7}100%{r:40;stroke-opacity:0}}
+@media (prefers-reduced-motion:reduce){.node .halo{animation:none}}
+
+/* work orders */
+.wo{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);overflow:hidden;display:flex;flex-direction:column}
+.wo-h{padding:10px 14px;background:linear-gradient(180deg,var(--verd-wash),transparent);border-bottom:1px dashed var(--line-2)}
+.wo-h .fac{font-size:.76rem;text-transform:uppercase;letter-spacing:.08em;color:var(--brass-d);font-weight:700}
+.wo-h h4{font-size:1.15rem;margin:2px 0}
+.wo-b{padding:8px 14px;flex:1}
+.slot{border:1px solid var(--line);border-radius:8px;padding:7px 9px;margin:7px 0;background:var(--pearl)}
+.slot.pass{border-color:#9fcfae;background:color-mix(in srgb,var(--pearl) 85%,#2f7d4f)}
+.slot .lbl{font-size:.72rem;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-3);font-weight:700}
+.slot .req{font-weight:600}
+.wo-f{padding:9px 14px;border-top:1px solid var(--line);background:var(--pearl-2)}
+.price{font-family:"Cormorant Garamond",serif;font-size:1.4rem;font-weight:700;color:var(--verd-d)}
+:root[data-theme="dark"] .price{color:var(--verd-l)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]) .price{color:var(--verd-l)}}
+.stages{display:flex;gap:4px;margin:6px 0}
+.stages span{flex:1;height:5px;border-radius:3px;background:var(--line)}
+.stages span.on{background:var(--brass)}
+
+.bar{height:9px;background:var(--line);border-radius:5px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,var(--verd),var(--verd-l))}
+.bar.brass i{background:linear-gradient(90deg,var(--brass-d),var(--brass-l))}
+
+.log{max-height:430px;overflow:auto;font-size:.88rem}
+.log div{padding:4px 0;border-bottom:1px dotted var(--line)}
+.log .t{color:var(--ink-3);font-size:.78rem;margin-right:6px}
+.cr-plus{color:var(--good);font-weight:600}.cr-minus{color:var(--bad);font-weight:600}
+
+.toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--verd-dd);color:#f4eee0;border:1px solid var(--brass);padding:9px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50;max-width:min(92vw,560px);font-size:.92rem;opacity:0;transition:opacity .2s;pointer-events:none}
+.toast.show{opacity:1}
+.banner{background:#f6e8c8;color:#5e420d;border:1px solid #e0c486;border-radius:8px;padding:9px 12px;margin-bottom:14px}
+.empty{color:var(--ink-3);font-style:italic;padding:8px 0}
+.kv{display:grid;grid-template-columns:auto 1fr;gap:3px 12px;font-size:.9rem}
+.kv dt{color:var(--ink-3)} .kv dd{margin:0}
+.statbox{text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--pearl)}
+.statbox .n{font-family:"Cormorant Garamond",serif;font-size:2.2rem;font-weight:700;line-height:1}
+.sockets{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.sock{border:1px dashed var(--line-2);border-radius:8px;padding:6px 8px;min-width:150px;flex:1;background:var(--pearl)}
+.sock.filled{border-style:solid;border-color:#9fcfae}
+details summary{cursor:pointer;font-weight:600}
+.sr{position:absolute;left:-9999px}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <div class="hdr">
+      <svg class="seal" viewBox="0 0 100 100" aria-hidden="true">
+        <circle cx="50" cy="50" r="46" fill="none" stroke="#d8bf86" stroke-width="5"/>
+        <circle cx="50" cy="50" r="38" fill="none" stroke="#d8bf86" stroke-width="1.5"/>
+        <path d="M24 30 C40 14 70 18 76 40 C80 56 70 72 54 78 C46 81 40 80 34 76 L30 82 L28 72 C36 74 46 72 54 66 C66 57 68 42 60 34 C52 26 38 26 28 36 Z" fill="#8fbfb3"/>
+        <circle cx="26" cy="33" r="1.8" fill="#13302c"/>
+        <g fill="#f4eee0"><circle cx="42" cy="26" r="2.6"/><circle cx="54" cy="25" r="2.3"/><circle cx="65" cy="30" r="2.1"/><circle cx="71" cy="40" r="1.9"/><circle cx="72" cy="51" r="1.7"/><circle cx="68" cy="61" r="1.5"/><circle cx="61" cy="69" r="1.3"/><circle cx="53" cy="74" r="1.1"/><circle cx="45" cy="76" r="1"/></g>
+        <g fill="#c9a227"><circle cx="48" cy="31" r="1.4"/><circle cx="60" cy="36" r="1.3"/><circle cx="64" cy="47" r="1.2"/><circle cx="62" cy="58" r="1"/></g>
+      </svg>
+      <div>
+        <h1>Finn's Facets &amp; Finds</h1>
+        <div class="sub">Lapidary ledger · Krakoa lighthouse</div>
+      </div>
+      <div class="spacer"></div>
+      <button class="btn end" id="endDayBtn" title="End the day: commissions roll, nodes respawn, baths finish">End Day</button>
+    </div>
+    <div class="status" id="status"></div>
+    <nav class="tabs" id="tabs"></nav>
+  </div>
+</header>
+<main><div class="wrap" id="view"></div></main>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+<script>
+"use strict";
+/* ================================================================
+   RULES — from Finn's Facets & Finds and Perks & Progression
+   ================================================================ */
+const SCHOOLS=["Abjuration","Conjuration","Divination","Enchantment","Evocation","Illusion","Necromancy","Transmutation"];
+const SCHOOL_SHAPE={Abjuration:"Shield",Conjuration:"Arch",Divination:"Eye",Enchantment:"Quatrefoil",Evocation:"Starburst",Illusion:"Impossible triangle",Necromancy:"Hourglass",Transmutation:"Hexagon"};
+const SCHOOL_COLOR={Abjuration:"#4f7fb3",Conjuration:"#c08a2e",Divination:"#7a62b0",Enchantment:"#c2648f",Evocation:"#c4503a",Illusion:"#5a9a9a",Necromancy:"#5b6170",Transmutation:"#4f8a4a"};
+const RARITIES=["Common","Uncommon","Rare","Mythic Rare"];
+const RARITY_ODDS={Common:50,Uncommon:30,Rare:15,"Mythic Rare":5};
+const GEMS={
+ "Clear quartz":{r:"Common",s:["Divination","Abjuration"],c:"#e8eef0"},
+ "Rose quartz":{r:"Common",s:["Enchantment"],c:"#f1bfc8"},
+ "Citrine":{r:"Common",s:["Conjuration"],c:"#e9b93c"},
+ "Onyx":{r:"Common",s:["Necromancy"],c:"#24262a"},
+ "Garnet":{r:"Common",s:["Necromancy"],c:"#7d1f2a"},
+ "Amethyst":{r:"Uncommon",s:["Enchantment"],c:"#8e5bb5"},
+ "Topaz":{r:"Uncommon",s:["Conjuration","Evocation"],c:"#e2963a"},
+ "Moonstone":{r:"Uncommon",s:["Divination","Illusion"],c:"#d7dfe9"},
+ "Aquamarine":{r:"Uncommon",s:["Transmutation"],c:"#7fd0d8"},
+ "Sapphire":{r:"Rare",s:["Abjuration","Divination"],c:"#1f4fa8"},
+ "Emerald":{r:"Rare",s:["Transmutation"],c:"#1f9a5a"},
+ "Opal":{r:"Rare",s:["Illusion"],c:"#bfe3e0"},
+ "Diamond":{r:"Mythic Rare",s:["Abjuration"],c:"#f6fbff"},
+ "Ruby":{r:"Mythic Rare",s:["Evocation"],c:"#c0142f"},
+};
+// Base prices: one number per gem, inside each rarity's range (editable in Settings)
+const DEFAULT_GEM_PRICES={"Clear quartz":10,"Rose quartz":12,"Citrine":15,"Onyx":18,"Garnet":20,"Amethyst":25,"Topaz":35,"Moonstone":40,"Aquamarine":45,"Opal":60,"Emerald":80,"Sapphire":100,"Ruby":160,"Diamond":200};
+const QUALITIES=["Crude","Fine","Perfect"];
+const QUALITY={Crude:{odds:70,mod:1},Fine:{odds:25,mod:1.5},Perfect:{odds:5,mod:2.5}};
+const PLAIN_CUTS=["Round Brilliant","Oval","Cushion","Princess","Radiant","Pear","Marquise","Heart","Trillion","Emerald","Asscher","Baguette","Rose","Briolette","Cabochon"];
+const TAGS={Shallows:{fee:0,lean:"Mostly Common gems, small geodes"},Reef:{fee:2,lean:"Sea-touched gems: aquamarine, moonstone, opal"},Wreck:{fee:3,lean:"Higher relic chance; better relic condition"},Rich:{fee:3,lean:"+2 dredge attempts"},Ruins:{fee:4,lean:"Higher relic chance, bigger relics; better condition"},Vent:{fee:4,lean:"Fiery gems: ruby, garnet, topaz"},Deep:{fee:5,lean:"Better odds at Rare and Mythic Rare"},Trench:{fee:5,lean:"Bigger geodes (Melon, Boulder)"}};
+const TAG_ICON={Shallows:"≈",Reef:"✿",Wreck:"⚓",Rich:"✦",Ruins:"⌂",Vent:"♨",Deep:"▼",Trench:"⇊"};
+const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
+const RELIC_SIZES={Small:{space:4,crate:10},Medium:{space:6,crate:15},Large:{space:8,crate:20},Monumental:{space:12,crate:30}};
+const CONDITIONS={Damaged:{odds:50,mod:.75},"Slightly Worn":{odds:35,mod:1},Pristine:{odds:15,mod:1.5}};
+const BASES={
+ Ring:{price:15,min:1,max:3,styles:{1:"Solitaire",2:"Two-stone",3:"Three-stone"}},
+ Earrings:{price:20,min:2,max:2,styles:{2:"Matched pair"}},
+ Pendant:{price:15,min:1,max:2,styles:{1:"Solitaire",2:"Two-stone drop"}},
+ Bracelet:{price:25,min:1,max:5,styles:{1:"Single-stone bangle",2:"Two-stone bangle",3:"Three-stone line",4:"Four-stone line",5:"Five-stone line"}},
+ Brooch:{price:15,min:1,max:3,styles:{1:"Single-stone",2:"Two-stone",3:"Three-stone cluster"}},
+ Circlet:{price:35,min:1,max:3,styles:{1:"Single-stone",2:"Two-stone",3:"Three-stone"}},
+};
+const BASE_LABEL={Ring:"Ring",Earrings:"Earrings (pair)",Pendant:"Pendant / necklace",Bracelet:"Bracelet",Brooch:"Brooch",Circlet:"Circlet"};
+const METALS={Copper:.5,Silver:1,Gold:3,Platinum:5,Mithril:8};
+const ORNAMENTS={Engraving:5,Milgrain:5,Enamel:10,Filigree:15};
+const ACCENT_PRICE=2;
+const PACK_COST=5;
+
+const spellCost=l=>l===0?10:20*l*l;
+const spellLabel=l=>l===0?"cantrip":ordinal(l)+"-level";
+const facets=l=>8*l;
+function ordinal(n){return n+(["th","st","nd","rd"][(n%100-20)%10]||["th","st","nd","rd"][n%100]||"th")}
+const xpToReach=n=>Math.round(50*Math.pow(1.25,n-1));
+const rpToReach=n=>Math.round(10*Math.pow(1.3,n-1));
+const GROWTH=[[0,"Baseline"],[5,"Honed"],[10,"Beta"],[20,"Alpha"],[40,"Omega"],[80,"Divine"],[160,"Cosmic"]];
+function growthTier(p){if(p>=320){let r=1,lo=320;while(p>=lo*2){lo*=2;r++}return "Beyond, Rank "+r}let t="Baseline";for(const [n,name] of GROWTH)if(p>=n)t=name;return t}
+
+const PERKS=[
+ {id:"bigger_hold",name:"Bigger Hold",stat:"insight",effect:"+10 trawler hold space"},
+ {id:"better_rig",name:"Better Dredge Rig",stat:"insight",effect:"+1 attempt per Dredge Node"},
+ {id:"node_sense",name:"Node Sense",stat:"insight",effect:"+1 Dredge Node visible at once"},
+ {id:"efficient_engine",name:"Efficient Engine",stat:"insight",effect:"−1 Cr per trawler trip (minimum 1)"},
+ {id:"sonar_sweep",name:"Sonar Sweep",stat:"insight",effect:"Reveals 1 more tag per node, chosen at random"},
+ {id:"expanded_storage",name:"Expanded Storage",stat:"renown",effect:"+20 home storage"},
+];
+
+const FACTIONS=[
+ {key:"adv",name:"Adventurer Association & Union",reps:"Adventurer Guilds",
+  types:{plain:1,spell:4,piece:4,reattune:2},schools:{Evocation:4,Abjuration:4},levels:[0,5],
+  rarity:{Common:5,Uncommon:3,Rare:1.5,"Mythic Rare":.5},quality:{Crude:6,Fine:3,Perfect:1},rough:.15,
+  metals:{Copper:3,Silver:5,Gold:1},orn:[0,1],bases:{Ring:4,Pendant:3,Bracelet:2,Brooch:1,Circlet:2,Earrings:1},
+  who:["Brinewatch Adventurers' Guild","The Lantern Road Company","Saltmarsh Delvers","the Copper Kestrel party","Wayfarers of the Ninth Pier"]},
+ {key:"arc",name:"Arcane Conclave & Council",reps:"Mage Guilds",
+  types:{plain:3,spell:5,piece:2,reattune:2},schools:{},levels:[3,9],
+  rarity:{Common:3,Uncommon:3,Rare:2,"Mythic Rare":1},quality:{Crude:4,Fine:4,Perfect:1},rough:.6,
+  metals:{Silver:3,Gold:3,Platinum:2,Mithril:1},orn:[0,2],bases:{Ring:4,Pendant:3,Circlet:2,Brooch:1,Bracelet:1,Earrings:1},
+  who:["the Tower of the Ebbing Moon","the Glass Orrery Circle","the Collegium of Deep Ink","Magister Orrin Vale","the Sevenfold Lodge"]},
+ {key:"sch",name:"Scholastic Consortium & Board",reps:"Academies",
+  types:{plain:1,spell:5,piece:2,reattune:2},schools:{},levels:[0,2],
+  rarity:{Common:6,Uncommon:3,Rare:.5,"Mythic Rare":.1},quality:{Crude:8,Fine:2,Perfect:.2},rough:.2,
+  metals:{Copper:5,Silver:3},orn:[0,1],bases:{Ring:3,Pendant:4,Bracelet:2,Brooch:2,Earrings:1,Circlet:.5},
+  who:["Harrowmere Academy","the Lantern Hill School of Wards","Tidewell Collegiate","Professor Ada Quill's seminar","the Saltglass Conservatory"]},
+ {key:"col",name:"Collectors' Society & Registry",reps:"Collector Guilds",
+  types:{plain:6,spell:.5,piece:2,reattune:.5},schools:{},levels:[0,3],
+  rarity:{Common:1,Uncommon:2,Rare:3,"Mythic Rare":2},quality:{Crude:1,Fine:4,Perfect:3},rough:.35,
+  metals:{Silver:2,Gold:4,Platinum:3,Mithril:1},orn:[1,2],bases:{Ring:3,Pendant:3,Brooch:3,Earrings:2,Bracelet:1,Circlet:1},
+  who:["the Cabinet of Curiosa","Registrar Bellamy Thorne","the House of Small Wonders","the Prism Club","Dame Isolde Marrow"]},
+ {key:"peer",name:"Peerage Assembly & Heraldic Council",reps:"Noble Houses",
+  types:{plain:1,spell:1,piece:6,reattune:1},schools:{Enchantment:5,Illusion:5},levels:[0,4],
+  rarity:{Common:1,Uncommon:3,Rare:3,"Mythic Rare":2},quality:{Crude:2,Fine:4,Perfect:2},rough:.05,
+  metals:{Gold:5,Platinum:3,Mithril:1},orn:[2,3],bases:{Ring:3,Earrings:3,Pendant:3,Circlet:3,Brooch:2,Bracelet:2},
+  who:["House Vantreille","the Duchess of Greywater","House Aldermoor","Lord Castellan Ives","House Sorrel-Brightwater"]},
+ {key:"syn",name:"Syndicate Accord & Compact",reps:"Crime Families",
+  types:{plain:1,spell:3,piece:3,reattune:1},schools:{Illusion:5,Enchantment:4,Divination:4},levels:[0,4],
+  rarity:{Common:4,Uncommon:3,Rare:1.5,"Mythic Rare":.5},quality:{Crude:5,Fine:3,Perfect:1},rough:.1,
+  metals:{Copper:3,Silver:4},orn:[0,0],bases:{Ring:5,Pendant:2,Bracelet:2,Earrings:1,Brooch:1},
+  who:["a client who gave no name","the Velvet Ledger","friends of Mr. Gray","the Night Tide Concern","the Quiet Partners"]},
+ {key:"tem",name:"Temple Synod & Interfaith Council",reps:"Temples",
+  types:{plain:1,spell:3,piece:4,reattune:2},schools:{Abjuration:5,Divination:5},levels:[0,5],
+  rarity:{Common:4,Uncommon:3,Rare:2,"Mythic Rare":.5},quality:{Crude:5,Fine:3,Perfect:1},rough:.1,
+  metals:{Copper:1,Silver:4,Gold:3},orn:[0,2],bases:{Brooch:5,Pendant:5,Ring:1,Circlet:1},
+  who:["the Shrine of the Tidemother","the Chapel of the Lantern Saints","the Sunken Abbey","the Temple of the Ninefold Watch","the Sisters of the Salt Hearth"]},
+ {key:"forge",name:"Forgewrights' Federation & Union",reps:"Smithies",
+  types:{plain:1,spell:6,piece:0,reattune:1},schools:{Evocation:5,Transmutation:5},levels:[1,6],
+  rarity:{Common:3,Uncommon:3,Rare:2,"Mythic Rare":1},quality:{Crude:1,Fine:5,Perfect:3},rough:.1,
+  metals:{Silver:1},orn:[0,0],bases:{Ring:1},
+  who:["Anvilmark Smithy","the Emberline Forge","Hollowhammer & Daughters","the Saltquench Armory","Master Smith Tova Brann"]},
+];
+const FAC=Object.fromEntries(FACTIONS.map(f=>[f.key,f]));
+
+const DEFAULT_CONFIG={
+ startCredits:500, daysPerMonth:30, livesCap:3, lifeCost:2500,
+ commissionCap:3, registration:20, referral:10, fee:25, urgentPct:50, urgentChance:15,
+ relicBase:4, relicWreck:8, relicRuins:12, condShift:10, crackChance:10,
+ spellLevelBase:1, precisionPerSpellLevel:2,
+ gemPrices:{...DEFAULT_GEM_PRICES},
+ perks:{bigger_hold:{t:3,max:5},better_rig:{t:5,max:3},node_sense:{t:8,max:3},efficient_engine:{t:2,max:4},sonar_sweep:{t:4,max:2},expanded_storage:{t:3,max:5}},
+};
+
+/* ================================================================
+   HELPERS
+   ================================================================ */
+const $=s=>document.querySelector(s);
+const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const rint=(a,b)=>a+Math.floor(Math.random()*(b-a+1));
+const pick=a=>a[Math.floor(Math.random()*a.length)];
+const shuffle=a=>{a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a};
+function wpick(entries){
+  if(!Array.isArray(entries))entries=Object.entries(entries);
+  entries=entries.filter(([,w])=>w>0);
+  if(!entries.length)return null;
+  let t=entries.reduce((s,[,w])=>s+w,0),r=Math.random()*t;
+  for(const [v,w] of entries){r-=w;if(r<0)return v}
+  return entries[entries.length-1][0];
+}
+const r2=n=>Math.round(n*100)/100;
+function cr(n){n=r2(n);return n.toLocaleString(undefined,{minimumFractionDigits:Number.isInteger(n)?0:2,maximumFractionDigits:2})+" Cr"}
+function fmtTime(m){const d=Math.floor(m/1440);m=m%1440;let h=Math.floor(m/60),mm=m%60,ap=h>=12?"PM":"AM";h=h%12||12;return `${h}:${String(mm).padStart(2,"0")} ${ap}`+(d?" (+1)":"")}
+function fmtDur(m){const h=Math.floor(m/60),mm=m%60;return h?(mm?`${h} hr ${mm} min`:`${h} hr`):`${mm} min`}
+const qRank=q=>QUALITIES.indexOf(q);
+const deep=o=>JSON.parse(JSON.stringify(o));
+
+function shapeSVG(school,cls="shape"){
+  const c=SCHOOL_COLOR[school]||"#888",st=`fill="${c}" stroke="rgba(0,0,0,.35)" stroke-width="1"`;
+  let p="";
+  switch(school){
+   case"Abjuration":p=`<path ${st} d="M12 2 L20 5 V11 C20 16 16.5 20 12 22 C7.5 20 4 16 4 11 V5 Z"/>`;break;
+   case"Conjuration":p=`<path ${st} d="M5 22 V11 A7 7 0 0 1 19 11 V22 Z"/>`;break;
+   case"Divination":p=`<path ${st} d="M2 12 Q12 3 22 12 Q12 21 2 12 Z"/><circle cx="12" cy="12" r="3.2" fill="#fff" opacity=".85"/>`;break;
+   case"Enchantment":p=`<g ${st}><circle cx="12" cy="7" r="4.6"/><circle cx="17" cy="12" r="4.6"/><circle cx="12" cy="17" r="4.6"/><circle cx="7" cy="12" r="4.6"/></g>`;break;
+   case"Evocation":p=`<path ${st} d="M12 1 L14.2 8.6 L21.5 6 L16.4 11.8 L22.5 16.5 L14.8 15.9 L12 23 L9.2 15.9 L1.5 16.5 L7.6 11.8 L2.5 6 L9.8 8.6 Z"/>`;break;
+   case"Illusion":p=`<path ${st} d="M12 2 L22 20 H2 Z"/><path d="M12 8 L17 17 H7 Z M12 2 L7 17 M22 20 L12 8 M2 20 L17 17" fill="none" stroke="#fff" stroke-opacity=".7" stroke-width="1"/>`;break;
+   case"Necromancy":p=`<path ${st} d="M6 2 H18 L12.6 12 L18 22 H6 L11.4 12 Z"/>`;break;
+   case"Transmutation":p=`<path ${st} d="M12 2 L20.7 7 V17 L12 22 L3.3 17 V7 Z"/>`;break;
+  }
+  return `<svg class="${cls}" viewBox="0 0 24 24" aria-label="${esc(SCHOOL_SHAPE[school]||"")}">${p}</svg>`;
+}
+const gemDot=t=>`<span class="gemdot" style="background:${GEMS[t]?.c||"#ccc"}"></span>`;
+const rarTag=r=>`<span class="tag r-${r.split(" ")[0]}">${esc(r)}</span>`;
+const qTag=q=>`<span class="tag q-${q}">${q}</span>`;
+function spellTxt(sp){return `${shapeSVG(sp.school)} <b>${esc(sp.name)}</b> <span class="muted small">(${sp.level===0?"cantrip":ordinal(sp.level)} ${esc(sp.school)} · ${sp.level===0?"cabochon":facets(sp.level)+" facets"})</span>`}
+
+/* ================================================================
+   STATE
+   ================================================================ */
+let S=null;            // the save
+let DB={spells:[],relics:[]};
+let UI={tab:"sea",selNode:null,vault:"all",cutGem:null,ledgerTab:"events"};
+
+function cfg(){return S.config}
+function newGame(){
+  const s={
+    version:1, meta:{savedAt:Date.now(),created:Date.now()},
+    clock:{day:1,min:420},
+    credits:DEFAULT_CONFIG.startCredits,
+    location:"home", pos:null,
+    xp:0, level:0, statPoints:0, stats:{insight:0,precision:0,renown:0},
+    perks:{}, lives:1,
+    patterns:Object.fromEntries(SCHOOLS.map(s=>[s,true])),
+    nodes:[], hold:[], storage:[], gems:[], parts:[], relics:[],
+    factions:Object.fromEntries(FACTIONS.map(f=>[f.key,{rp:0,level:0,registered:false,autoRenew:false}])),
+    offers:[], orders:[], done:[],
+    log:[], ledger:[],
+    config:deep(DEFAULT_CONFIG), nextId:1,
+  };
+  S=s;
+  fillNodes();
+  addLog("Finn opens the shop. Register with a faction to start getting commissions.");
+  return s;
+}
+function migrate(s){
+  s.config=Object.assign(deep(DEFAULT_CONFIG),s.config||{});
+  s.config.gemPrices=Object.assign({...DEFAULT_GEM_PRICES},s.config.gemPrices||{});
+  s.config.perks=Object.assign(deep(DEFAULT_CONFIG.perks),s.config.perks||{});
+  for(const f of FACTIONS) if(!s.factions[f.key]) s.factions[f.key]={rp:0,level:0,registered:false,autoRenew:false};
+  for(const k of ["nodes","hold","storage","gems","parts","relics","offers","orders","done","log","ledger"]) s[k]=s[k]||[];
+  s.meta=s.meta||{savedAt:Date.now()};
+  return s;
+}
+const nid=p=>`${p}${S.nextId++}`;
+
+/* derived */
+const prank=id=>S.perks[id]||0;
+const holdCap=()=>20+10*prank("bigger_hold");
+const storageCap=()=>60+20*prank("expanded_storage");
+const nodesVisible=()=>3+prank("node_sense");
+const livesCap=()=>cfg().livesCap;
+const commissionCap=()=>cfg().commissionCap;
+const maxSpellLevel=()=>Math.min(9,cfg().spellLevelBase+Math.floor(S.stats.precision/Math.max(1,cfg().precisionPerSpellLevel)));
+const gemPrice=t=>cfg().gemPrices[t]??DEFAULT_GEM_PRICES[t];
+const gemValue=(t,q)=>gemPrice(t)*QUALITY[q].mod;
+const itemSpace=it=>it.kind==="geode"?GEODES[it.size].space:RELIC_SIZES[it.size].space;
+const used=list=>list.reduce((s,i)=>s+itemSpace(i),0);
+const monthOf=d=>Math.floor((d-1)/cfg().daysPerMonth)+1;
+const dayOfMonth=d=>((d-1)%cfg().daysPerMonth)+1;
+const atHome=()=>S.location==="home";
+const isLate=()=>S.clock.min>=21*60;
+const nodeById=id=>S.nodes.find(n=>n.id===id);
+function tripCost(n){return Math.max(1,5+n.tags.reduce((s,t)=>s+TAGS[t].fee,0)-prank("efficient_engine"))}
+const tripTime=n=>30+15*n.tags.length;
+
+/* ================================================================
+   LOG / LEDGER / CLOCK
+   ================================================================ */
+function stamp(){return `D${S.clock.day} ${fmtTime(S.clock.min)}`}
+function addLog(text){S.log.unshift({at:stamp(),text});if(S.log.length>400)S.log.length=400}
+function money(amount,text){S.credits=r2(S.credits+amount);S.ledger.unshift({at:stamp(),text,amt:r2(amount),bal:S.credits});if(S.ledger.length>600)S.ledger.length=600}
+function canPay(a){return S.credits+1e-9>=a}
+function pay(a,text){if(!canPay(a)){toast(`Not enough Credits (need ${cr(a)})`);return false}money(-a,text);return true}
+function spendTime(base){const m=isLate()?Math.ceil(base*1.25):base;S.clock.min+=m;return m}
+function gainXP(n,why){
+  if(!n)return;S.xp+=n;
+  let msg=`+${n} XP (${why})`;
+  while(S.xp>=xpToReach(S.level+1)){S.xp-=xpToReach(S.level+1);S.level++;S.statPoints++;msg+=` — Level ${S.level}! +1 stat point`;}
+  addLog(msg);
+}
+let toastT=null;
+function toast(t){const el=$("#toast");el.textContent=t;el.classList.add("show");clearTimeout(toastT);toastT=setTimeout(()=>el.classList.remove("show"),3200)}
+
+/* run a timed action, then save + render */
+function act(baseMin,fn,label){
+  const ok=fn();
+  if(ok===false)return;
+  const m=baseMin?spendTime(baseMin):0;
+  if(label)addLog(label+(m?` (${fmtDur(m)})`:""));
+  commit();
+}
+function commit(){S.meta.savedAt=Date.now();saveLocal(true);render()}
+
+/* ================================================================
+   DREDGING
+   ================================================================ */
+function genNode(){
+  const tagNames=Object.keys(TAGS);
+  const n2=Math.random()<.4?2:1;
+  const tags=shuffle(tagNames).slice(0,n2);
+  let x,y,tries=0;
+  do{x=rint(290,760);y=rint(45,455);tries++}
+  while(tries<60&&S.nodes.some(o=>Math.hypot(o.x-x,o.y-y)<95));
+  const attempts=rint(3,6)+(tags.includes("Rich")?2:0)+prank("better_rig");
+  return {id:nid("n"),x,y,tags,attempts,left:attempts,revealOrder:shuffle(tags)};
+}
+function fillNodes(){while(S.nodes.length<nodesVisible())S.nodes.push(genNode())}
+function revealed(n){return n.revealOrder.slice(0,prank("sonar_sweep"))}
+
+function sail(id){
+  const n=nodeById(id);if(!n)return;
+  if(S.location===id)return;
+  const c=tripCost(n);
+  act(tripTime(n),()=>{if(!pay(c,`Metered Mana — trawler trip`))return false;S.location=id;S.pos=null;},`Sailed to a Dredge Node (${cr(c)})`);
+}
+function returnHome(){
+  if(atHome())return;
+  act(30,()=>{S.location="home";S.pos=null;unload();},"Returned home and unloaded");
+}
+function unload(){
+  const free=storageCap()-used(S.storage);let moved=0,left=[];
+  let room=free;
+  for(const it of S.hold){if(itemSpace(it)<=room){S.storage.push(it);room-=itemSpace(it);moved++}else left.push(it)}
+  S.hold=left;
+  if(left.length)addLog(`Home storage is full — ${left.length} item(s) stay in the trawler hold.`);
+}
+function rollDredge(n){
+  const T=n.tags,c=cfg();
+  const relicChance=c.relicBase+(T.includes("Wreck")?c.relicWreck:0)+(T.includes("Ruins")?c.relicRuins:0);
+  if(DB.relics.length&&Math.random()*100<relicChance){
+    const size=wpick(T.includes("Ruins")?{Small:25,Medium:35,Large:25,Monumental:15}:{Small:50,Medium:30,Large:15,Monumental:5});
+    let pool=DB.relics.filter(r=>r.size===size);if(!pool.length)pool=DB.relics;
+    const R=pick(pool);
+    const shifts=(T.includes("Wreck")?1:0)+(T.includes("Ruins")?1:0),sh=c.condShift;
+    const cond=wpick({Damaged:50-sh*shifts,"Slightly Worn":35+sh/2*shifts,Pristine:15+sh/2*shifts});
+    return {id:nid("r"),kind:"relic",relicId:R.id,name:R.name,size:R.size,base:R.base,description:R.description,condition:cond,
+            sockets:R.sockets.map(s=>({school:s.school,level:s.level,gem:null})),stage:"dormant"};
+  }
+  let w={Pebble:40,Fist:35,Melon:18,Boulder:7};
+  if(T.includes("Shallows"))w={Pebble:55,Fist:35,Melon:8,Boulder:2};
+  if(T.includes("Trench"))w={Pebble:12,Fist:28,Melon:35,Boulder:25};
+  return {id:nid("g"),kind:"geode",size:wpick(w),tags:T.slice()};
+}
+function dredge(){
+  const n=nodeById(S.location);if(!n||n.left<=0)return;
+  act(20,()=>{
+    n.left--;gainXP(1,"dredge attempt");
+    const it=rollDredge(n);
+    const what=it.kind==="relic"?`a ${it.size} relic — ${it.name} (${it.condition})`:`a ${it.size} geode`;
+    if(it.kind==="relic")gainXP(5,"found a relic");
+    if(used(S.hold)+itemSpace(it)>holdCap()){addLog(`Hauled up ${what}, but it won't fit in the hold. Back it goes.`);toast(`Hold full — ${what} went back over the side.`)}
+    else{S.hold.push(it);addLog(`Hauled up ${what}.`);toast(`Hauled up ${what}!`)}
+    if(n.left===0){S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;addLog("The Dredge Node fades. A new one will appear tomorrow.")}
+  },"Dredge attempt");
+}
+function toss(where,id){
+  const list=where==="hold"?S.hold:S.storage;const i=list.findIndex(x=>x.id===id);if(i<0)return;
+  if(list[i].kind==="relic"&&list[i].sockets.some(s=>s.gem)){toast("Unsocket its gems first.");return}
+  if(!confirm("Toss this back into the sea? It's gone for good."))return;
+  list.splice(i,1);addLog("Tossed an item back into the sea.");commit();
+}
+
+/* ================================================================
+   CHISEL & CUT
+   ================================================================ */
+function rollGem(tags){
+  let rw={...RARITY_ODDS};
+  if(tags.includes("Deep"))rw={Common:35,Uncommon:30,Rare:23,"Mythic Rare":12};
+  if(tags.includes("Shallows"))rw={Common:65,Uncommon:25,Rare:8,"Mythic Rare":2};
+  const rar=wpick(rw);
+  const pool=Object.keys(GEMS).filter(g=>GEMS[g].r===rar);
+  const tw=pool.map(g=>{let w=1;
+    if(tags.includes("Reef")&&["Aquamarine","Moonstone","Opal"].includes(g))w*=3;
+    if(tags.includes("Vent")&&["Ruby","Garnet","Topaz"].includes(g))w*=3;
+    return [g,w]});
+  return {id:nid("gem"),type:wpick(tw),quality:wpick(Object.fromEntries(QUALITIES.map(q=>[q,QUALITY[q].odds]))),state:"rough"};
+}
+function chisel(id){
+  if(!atHome()){toast("The cracking bench is at home.");return}
+  const i=S.storage.findIndex(x=>x.id===id&&x.kind==="geode");if(i<0)return;
+  const g=S.storage[i];
+  act(GEODES[g.size].chisel,()=>{
+    S.storage.splice(i,1);
+    const n=rint(1,GEODES[g.size].max),got=[];
+    for(let k=0;k<n;k++){const gem=rollGem(g.tags||[]);S.gems.push(gem);got.push(`${gem.quality} ${gem.type}`)}
+    toast(`Inside: ${got.join(", ")}`);addLog(`Chiseled a ${g.size} geode: ${got.join(", ")}.`);
+  },"Chiseled a geode");
+}
+function canCutSpell(sp){return sp.level<=maxSpellLevel()&&S.patterns[sp.school]}
+function cutPlain(gemId,cut,quiet){
+  const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return false;
+  if(!atHome()){toast("The faceting wheel is at home.");return false}
+  g.state="plain";g.cut=cut;spendTime(60);gainXP(2,"plain cut");
+  addLog(`Cut a ${g.quality} ${g.type} — ${cut} (plain).`);
+  if(!quiet)commit();return true;
+}
+function cutSpell(gemId,spellName,quiet){
+  const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return false;
+  if(!atHome()){toast("The faceting wheel is at home.");return false}
+  const sp=DB.spells.find(s=>s.name===spellName);if(!sp)return false;
+  if(!GEMS[g.type].s.includes(sp.school)){toast(`${g.type} has no ${sp.school} affinity.`);return false}
+  if(!canCutSpell(sp)){toast(`Finn can't cut that yet — max spell level ${maxSpellLevel()}, and the ${sp.school} pattern must be learned.`);return false}
+  const mana=r2(spellCost(sp.level)*.2);
+  if(!pay(mana,`Metered Mana — ${sp.name} cut`))return false;
+  g.state="spell";g.spell={name:sp.name,level:sp.level,school:sp.school};
+  const m=spendTime(60+30*sp.level);gainXP(3+sp.level,"spell cut");
+  addLog(`Spell-cut a ${g.quality} ${g.type} for ${sp.name} — ${SCHOOL_SHAPE[sp.school]}, ${sp.level?facets(sp.level)+" facets":"cabochon"} (${fmtDur(m)}).`);
+  if(!quiet)commit();return true;
+}
+
+/* ================================================================
+   HALLMARK'S CRAFTSMEN & CO.
+   ================================================================ */
+const mountingPrice=(base,slots,metal)=>(BASES[base].price+(base==="Earrings"?0:5*Math.max(0,slots-1)))*METALS[metal];
+function orderMounting(base,slots,metal,quiet){
+  const p=mountingPrice(base,slots,metal);
+  if(!pay(p,`Hallmark's — ${metal} ${BASES[base].styles[slots]} ${base==="Earrings"?"earrings":base.toLowerCase()}`))return false;
+  S.parts.push({id:nid("p"),kind:"mounting",base,slots,metal,price:p});
+  spendTime(5);addLog(`Ordered a ${metal} ${BASES[base].styles[slots]} ${BASE_LABEL[base]} mounting from Hallmark's (${cr(p)}).`);
+  if(!quiet)commit();return true;
+}
+function orderOrnament(name,quiet){
+  const p=ORNAMENTS[name];
+  if(!pay(p,`Hallmark's — ${name}`))return false;
+  S.parts.push({id:nid("p"),kind:"ornament",name,price:p});
+  spendTime(5);addLog(`Ordered ${name} from Hallmark's (${cr(p)}).`);
+  if(!quiet)commit();return true;
+}
+
+/* ================================================================
+   COMMISSIONS
+   ================================================================ */
+function pickSpell(f){
+  if(!DB.spells.length)return null;
+  const [lo,hi]=f.levels;
+  const pool=DB.spells.filter(s=>s.level>=lo&&s.level<=hi);
+  if(!pool.length)return null;
+  return wpick(pool.map(s=>[s,(f.schools[s.school]||1)*(hi-s.level+1)]));
+}
+function pickAffinityGem(school,f){
+  return wpick(Object.keys(GEMS).filter(g=>GEMS[g].s.includes(school)).map(g=>[g,f.rarity[GEMS[g].r]||1]));
+}
+function pickPlainGem(f){return wpick(Object.keys(GEMS).map(g=>[g,f.rarity[GEMS[g].r]||1]))}
+function pickPlainCut(t){if(["Opal","Moonstone"].includes(t)&&Math.random()<.5)return "Cabochon";return pick(PLAIN_CUTS)}
+const pickQ=f=>wpick(f.quality);
+function cheapestAffinity(school){return Object.keys(GEMS).filter(g=>GEMS[g].s.includes(school)).sort((a,b)=>gemPrice(a)-gemPrice(b))[0]}
+
+function genOrder(f){
+  const types={...f.types};
+  if(!DB.spells.length){types.spell=0;types.reattune=0}
+  const type=wpick(types)||"plain";
+  const o={id:nid("wo"),faction:f.key,who:pick(f.who),type,urgent:Math.random()*100<cfg().urgentChance,
+           expires:S.clock.day+rint(3,7),created:S.clock.day,slots:[],stage:"offer"};
+  const spellShare=types.spell/((types.spell+types.plain)||1);
+  if(type==="plain"){
+    const t=pickPlainGem(f);
+    const isRough=Math.random()<f.rough;
+    const cut=isRough?"rough":pickPlainCut(t);
+    o.slots.push({kind:"gem",label:"Gem",req:{gemType:t,minQ:pickQ(f),cut,spell:null}});
+    o.title=isRough?`Rough ${t}`:`${cut}-cut ${t}`;
+  }else if(type==="spell"){
+    const sp=pickSpell(f),t=pickAffinityGem(sp.school,f);
+    o.slots.push({kind:"gem",label:"Spell gem",req:{gemType:t,minQ:pickQ(f),cut:null,spell:{name:sp.name,level:sp.level,school:sp.school}}});
+    o.title=`${t} cut for ${sp.name}`;
+  }else if(type==="piece"){
+    const base=wpick(f.bases),B=BASES[base];
+    const n=rint(B.min,B.max),metal=wpick(f.metals);
+    const mkGem=()=>{
+      if(DB.spells.length&&Math.random()<spellShare){const sp=pickSpell(f);return {gemType:pickAffinityGem(sp.school,f),minQ:pickQ(f),cut:null,spell:{name:sp.name,level:sp.level,school:sp.school}}}
+      const t=pickPlainGem(f);return {gemType:t,minQ:pickQ(f),cut:pickPlainCut(t),spell:null};
+    };
+    if(base==="Earrings"){const r=mkGem();o.slots.push({kind:"gem",label:"Left ear",req:r},{kind:"gem",label:"Right ear",req:deep(r)})}
+    else for(let i=0;i<n;i++)o.slots.push({kind:"gem",label:`Gem slot ${i+1}`,req:mkGem()});
+    o.slots.push({kind:"mounting",label:"Mounting",req:{base,slots:n,metal}});
+    const k=rint(f.orn[0],f.orn[1]);
+    for(const name of shuffle([...Object.keys(ORNAMENTS),"Accent stones"]).slice(0,k)){
+      if(name==="Accent stones")o.slots.push({kind:"accent",label:"Accent stones",req:{count:rint(2,6)},fill:[]});
+      else o.slots.push({kind:"ornament",label:"Ornamentation",req:{name}});
+    }
+    const spells=o.slots.filter(s=>s.kind==="gem"&&s.req.spell).length;
+    o.title=`${metal} ${base==="Earrings"?"earrings":B.styles[n]+" "+BASE_LABEL[base].toLowerCase()}${spells?` with ${spells} spell gem${spells>1?"s":""}`:""}`;
+    o.piece={base,slots:n,metal};
+  }else{ // reattune
+    const sp=pickSpell(f),base=wpick(f.bases);
+    const cracked=Math.random()*100<cfg().crackChance;
+    o.reattune={piece:BASE_LABEL[base],spell:{name:sp.name,level:sp.level,school:sp.school},cracked};
+    if(cracked)o.slots.push({kind:"replace",label:"Replacement gem (cracked)",req:{spell:o.reattune.spell,gemType:cheapestAffinity(sp.school),minQ:"Crude"}});
+    else o.slots.push({kind:"bath",label:"Manasonic Bath",req:{spell:o.reattune.spell},bath:"waiting"});
+    o.title=`Re-attune a ${BASE_LABEL[base].toLowerCase()} — ${sp.name}`;
+  }
+  const spellGems=o.slots.filter(s=>(s.kind==="gem"&&s.req.spell)).length;
+  o.urgentDays=rint(2,5)+(type==="piece"?Math.max(0,spellGems-1):0);
+  o.quote=priceOf(o,false).total;
+  return o;
+}
+
+function fillOf(s){
+  if(s.kind==="accent")return (s.fill||[]).map(id=>S.gems.find(g=>g.id===id)).filter(Boolean);
+  if(!s.fill)return null;
+  if(s.kind==="mounting"||s.kind==="ornament")return S.parts.find(p=>p.id===s.fill)||null;
+  return S.gems.find(g=>g.id===s.fill)||null;
+}
+/* Price = gem base × Quality + spell cost + parts + fee(25% of parts); urgent +50% */
+function priceOf(o,live){
+  let gems=0,spells=0,parts=0;const lines=[];
+  for(const s of o.slots){
+    const f=live&&o.frozen?o.frozen[o.slots.indexOf(s)]:(live?fillOf(s):null);
+    if(s.kind==="gem"){
+      const t=s.req.gemType,q=(f&&f.quality)||s.req.minQ;
+      let v=gemValue(t,q);
+      if(s.req.cut==="rough"){v*=.75;lines.push([`${q} ${t} (rough ×0.75)`,v])}
+      else lines.push([`${q} ${t}`,v]);
+      gems+=v;
+      if(s.req.spell){const c=spellCost(s.req.spell.level);spells+=c;lines.push([`${s.req.spell.name} cut`,c])}
+    }else if(s.kind==="replace"){
+      const t=(f&&f.type)||s.req.gemType,q=(f&&f.quality)||s.req.minQ,v=gemValue(t,q);gems+=v;lines.push([`Replacement ${q} ${t}`,v]);
+    }else if(s.kind==="mounting"){const p=mountingPrice(s.req.base,s.req.slots,s.req.metal);parts+=p;lines.push(["Mounting",p])}
+    else if(s.kind==="ornament"){const p=ORNAMENTS[s.req.name];parts+=p;lines.push([s.req.name,p])}
+    else if(s.kind==="accent"){const p=ACCENT_PRICE*s.req.count;parts+=p;lines.push([`Accent setting ×${s.req.count}`,p])}
+  }
+  if(o.type==="reattune"){const c=spellCost(o.reattune.spell.level)/2;spells+=c;lines.push(["Re-attunement (½ spell)",c])}
+  const fee=parts*cfg().fee/100;
+  let total=gems+spells+parts+fee;
+  const urgentFee=(o.urgent&&!o.missed)?total*cfg().urgentPct/100:0;
+  total+=urgentFee;
+  const referral=total*cfg().referral/100;
+  return {gems,spells,parts,fee,urgentFee,total:r2(total),referral:r2(referral),net:r2(total-referral),lines};
+}
+function rpOf(o){
+  if(o.urgent&&o.missed)return 0;
+  const bonus=l=>Math.ceil(l/3);
+  if(o.type==="plain"||o.type==="reattune")return 1;
+  if(o.type==="spell")return 2+bonus(o.slots[0].req.spell.level);
+  return 3+o.slots.filter(s=>s.kind==="gem"&&s.req.spell).reduce((a,s)=>a+bonus(s.req.spell.level),0);
+}
+function slotPasses(s){
+  if(s.kind==="accent")return (s.fill||[]).length>=s.req.count;
+  if(s.kind==="bath")return s.bath==="done";
+  return !!fillOf(s);
+}
+function candidates(o,s){
+  if(s.kind==="gem"){const r=s.req;return S.gems.filter(g=>!g.reserved&&g.type===r.gemType&&qRank(g.quality)>=qRank(r.minQ)&&(
+      r.cut==="rough"?g.state==="rough":r.spell?(g.state==="spell"&&g.spell.name===r.spell.name):(g.state==="plain"&&g.cut===r.cut)))}
+  if(s.kind==="replace")return S.gems.filter(g=>!g.reserved&&g.state==="spell"&&g.spell.name===s.req.spell.name);
+  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="plain");
+  if(s.kind==="mounting")return S.parts.filter(p=>!p.reserved&&p.kind==="mounting"&&p.base===s.req.base&&p.slots===s.req.slots&&p.metal===s.req.metal);
+  if(s.kind==="ornament")return S.parts.filter(p=>!p.reserved&&p.kind==="ornament"&&p.name===s.req.name);
+  return [];
+}
+/* rough gems that could be cut to satisfy a slot */
+function roughFor(s){
+  if(s.kind==="gem"&&s.req.cut!=="rough")return S.gems.filter(g=>!g.reserved&&g.state==="rough"&&g.type===s.req.gemType&&qRank(g.quality)>=qRank(s.req.minQ));
+  if(s.kind==="replace")return S.gems.filter(g=>!g.reserved&&g.state==="rough"&&GEMS[g.type].s.includes(s.req.spell.school));
+  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="rough");
+  return [];
+}
+const findOrder=id=>S.orders.find(o=>o.id===id);
+function fillSlot(oid,idx,itemId){
+  const o=findOrder(oid),s=o.slots[idx];if(!o||o.stage!=="filling")return;
+  const pool=(s.kind==="mounting"||s.kind==="ornament")?S.parts:S.gems;
+  if(s.kind==="accent"){
+    const g=S.gems.find(x=>x.id===itemId);if(!g)return;g.reserved=o.id;s.fill.push(g.id);
+  }else{
+    if(s.fill){const old=pool.find(x=>x.id===s.fill);if(old)delete old.reserved}
+    s.fill=null;
+    if(itemId){const it=pool.find(x=>x.id===itemId);if(it){it.reserved=o.id;s.fill=it.id}}
+  }
+  commit();
+}
+function unfillAccent(oid,idx,gid){
+  const o=findOrder(oid),s=o.slots[idx];s.fill=s.fill.filter(x=>x!==gid);const g=S.gems.find(x=>x.id===gid);if(g)delete g.reserved;commit();
+}
+function autoFill(oid){
+  const o=findOrder(oid);let n=0;
+  o.slots.forEach((s,i)=>{
+    if(s.kind==="accent"){while(s.fill.length<s.req.count){const c=candidates(o,s).sort((a,b)=>gemPrice(a.type)-gemPrice(b.type)||qRank(a.quality)-qRank(b.quality))[0];if(!c)break;c.reserved=o.id;s.fill.push(c.id);n++}return}
+    if(s.kind==="bath"||s.fill)return;
+    const c=candidates(o,s).sort((a,b)=>qRank(a.quality||"Crude")-qRank(b.quality||"Crude"))[0];
+    if(c){c.reserved=o.id;s.fill=c.id;n++}
+  });
+  toast(n?`Filled ${n} slot${n>1?"s":""} from inventory.`:"Nothing in inventory matches the open slots.");commit();
+}
+/* cut a qualifying rough stone straight into this slot */
+function cutFor(oid,idx){
+  const o=findOrder(oid),s=o.slots[idx];
+  const pool=roughFor(s).sort((a,b)=>qRank(a.quality)-qRank(b.quality)||gemPrice(a.type)-gemPrice(b.type));
+  const g=pool[0];if(!g){toast("No rough stone qualifies.");return}
+  let ok;
+  if(s.kind==="accent")ok=cutPlain(g.id,"Round Brilliant",true);
+  else if(s.req.spell)ok=cutSpell(g.id,s.req.spell.name,true);
+  else ok=cutPlain(g.id,s.req.cut,true);
+  if(!ok){render();return}
+  g.reserved=o.id;
+  if(s.kind==="accent")s.fill.push(g.id);else s.fill=g.id;
+  commit();
+}
+function buyPartsFor(oid){
+  const o=findOrder(oid);let n=0;
+  for(const s of o.slots){
+    if(s.kind==="mounting"&&!s.fill){
+      let p=candidates(o,s)[0];
+      if(!p){if(!orderMounting(s.req.base,s.req.slots,s.req.metal,true))break;p=S.parts[S.parts.length-1]}
+      p.reserved=o.id;s.fill=p.id;n++;
+    }
+    if(s.kind==="ornament"&&!s.fill){
+      let p=candidates(o,s)[0];
+      if(!p){if(!orderOrnament(s.req.name,true))break;p=S.parts[S.parts.length-1]}
+      p.reserved=o.id;s.fill=p.id;n++;
+    }
+  }
+  if(n)toast(`Parts in hand for ${n} slot${n>1?"s":""}.`);commit();
+}
+function accept(oid){
+  const i=S.offers.findIndex(o=>o.id===oid);if(i<0)return;
+  if(S.orders.length>=commissionCap()){toast(`Commission cap reached (${commissionCap()} active).`);return}
+  const o=S.offers.splice(i,1)[0];
+  o.stage="filling";o.accepted=S.clock.day;
+  if(o.urgent)o.deadline=S.clock.day+o.urgentDays;
+  S.orders.push(o);addLog(`Accepted: ${o.title} for ${o.who} (${FAC[o.faction].name}).`);commit();
+}
+function decline(oid){S.offers=S.offers.filter(o=>o.id!==oid);addLog("Let a commission offer go.");commit()}
+function release(o){
+  for(const s of o.slots){
+    const ids=s.kind==="accent"?(s.fill||[]):[s.fill];
+    for(const id of ids){const it=[...S.gems,...S.parts].find(x=>x.id===id);if(it)delete it.reserved}
+  }
+}
+function abandon(oid){
+  const o=findOrder(oid);if(!o)return;
+  if(o.stage!=="filling"){toast("It's already assembled.");return}
+  if(!confirm("Cancel this commission? Reserved gems and parts go back to inventory. No pay, no RP."))return;
+  release(o);S.orders=S.orders.filter(x=>x!==o);addLog(`Cancelled: ${o.title}.`);commit();
+}
+function startBath(oid,idx){
+  const o=findOrder(oid),s=o.slots[idx];if(!atHome()){toast("The Manasonic Bath is at home.");return}
+  const sp=s.req.spell;if(!canCutSpell(sp)){toast("Finn needs that spell level and pattern to re-facet it.");return}
+  const mana=r2(spellCost(sp.level)/2*.2);
+  act(30,()=>{if(!pay(mana,`Metered Mana — Manasonic Bath (${sp.name})`))return false;s.bath="soaking";},`Unset the gem and started a Manasonic Bath soak — finishes overnight`);
+}
+function refacet(oid,idx){
+  const o=findOrder(oid),s=o.slots[idx];if(!atHome())return;
+  act(60+30*s.req.spell.level,()=>{s.bath="done";gainXP(2,"re-attunement");},`Re-faceted ${s.req.spell.name} into the fresh growth (a little hazy, as re-attuned gems are)`);
+}
+function assemble(oid){
+  const o=findOrder(oid);if(!o||!o.slots.every(slotPasses))return;
+  if(!atHome()){toast("Assembly happens in the workroom.");return}
+  const gemsN=o.slots.filter(s=>s.kind==="gem").length;
+  const t=o.type==="piece"?60+15*gemsN:o.type==="reattune"?15:0;
+  const accent=o.slots.filter(s=>s.kind==="accent").reduce((a,s)=>a+s.req.count*ACCENT_PRICE,0);
+  act(t,()=>{
+    if(accent&&!pay(accent,"Hallmark's — accent stone setting"))return false;
+    o.frozen=o.slots.map(s=>{const f=fillOf(s);return f?deep(f):null});
+    for(const s of o.slots){
+      const ids=s.kind==="accent"?s.fill:[s.fill];
+      for(const id of ids){S.gems=S.gems.filter(g=>g.id!==id);S.parts=S.parts.filter(p=>p.id!==id)}
+    }
+    o.stage="assembled";
+  },o.type==="piece"?`Set the gems into the ${o.title}`:o.type==="reattune"?"Reset the gem in its piece":"Readied the gem for packing");
+}
+function packOrder(oid){
+  const o=findOrder(oid);if(!o||o.stage!=="assembled"||!atHome())return;
+  act(15,()=>{if(!pay(PACK_COST,"Jewelry case"))return false;o.stage="packed"},"Packed the order: velvet case, business card, parcel paper, twine, wax and hanko");
+}
+function sendOrder(oid){
+  const o=findOrder(oid);if(!o||o.stage!=="packed"||!atHome())return;
+  act(5,()=>{
+    const p=priceOf(o,true),rp=rpOf(o),fac=S.factions[o.faction];
+    money(p.total,`${o.title} — ${o.who}`);
+    money(-p.referral,`${FAC[o.faction].name} referral cut (${cfg().referral}%)`);
+    addRP(o.faction,rp);
+    gainXP(5*rp,"completed commission");
+    S.orders=S.orders.filter(x=>x!==o);
+    S.done.unshift({id:o.id,title:o.title,who:o.who,faction:o.faction,day:S.clock.day,total:p.total,net:p.net,rp,urgent:o.urgent,missed:!!o.missed});
+    if(S.done.length>200)S.done.length=200;
+    toast(`Delivered! ${cr(p.net)} after referral, +${rp} RP.`);
+  },"Sent the parcel through the sending circle");
+}
+function addRP(key,rp){
+  const f=S.factions[key];f.rp+=rp;
+  while(f.rp>=rpToReach(f.level+1)){f.rp-=rpToReach(f.level+1);f.level++;addLog(`Reputation with ${FAC[key].name} rose to Level ${f.level}.`)}
+}
+
+/* ================================================================
+   RELICS
+   ================================================================ */
+const relicById=id=>S.storage.find(x=>x.id===id&&x.kind==="relic");
+function socketCands(sock){return S.gems.filter(g=>!g.reserved&&g.state==="spell"&&g.spell.school===sock.school&&g.spell.level===sock.level)}
+function socketGem(rid,i,gid){
+  const r=relicById(rid);if(!r||r.stage!=="dormant"&&r.stage!=="active")return;
+  const s=r.sockets[i];
+  if(s.gem){const g=S.gems.find(x=>x.id===s.gem);if(g)delete g.reserved;s.gem=null}
+  if(gid){const g=S.gems.find(x=>x.id===gid);if(g){g.reserved="relic:"+rid;s.gem=g.id}}
+  const was=r.stage;r.stage=r.sockets.every(x=>x.gem)?"active":"dormant";
+  if(was!=="active"&&r.stage==="active"){addLog(`${r.name} wakes up! Every socket is filled.`);toast(`${r.name} is active!`)}
+  commit();
+}
+function relicPayout(r){
+  const gv=r.sockets.reduce((a,s)=>{const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];return a+(g?gemValue(g.type,g.quality):0)},0);
+  return {gems:gv,total:r2((r.base+gv)*CONDITIONS[r.condition].mod)};
+}
+function packRelic(rid){
+  const r=relicById(rid);if(!r||r.stage!=="active"||!atHome())return;
+  const c=RELIC_SIZES[r.size].crate;
+  act(30,()=>{if(!pay(c,`Relic crate (${r.size})`))return false;
+    r.frozen={};for(const s of r.sockets){const g=S.gems.find(x=>x.id===s.gem);r.frozen[s.gem]=deep(g);S.gems=S.gems.filter(x=>x.id!==s.gem)}
+    r.stage="packed"},`Crated ${r.name} in straw and velvet, logo burned into the lid`);
+}
+function sendRelic(rid){
+  const r=relicById(rid);if(!r||r.stage!=="packed")return;
+  act(5,()=>{const p=relicPayout(r);money(p.total,`Joint Planar Archaeological Survey — ${r.name}`);
+    gainXP(10*r.sockets.length,"sold an activated relic");
+    S.storage=S.storage.filter(x=>x!==r);
+    S.relics.unshift({name:r.name,size:r.size,condition:r.condition,day:S.clock.day,total:p.total});
+    toast(`The Survey paid ${cr(p.total)} for ${r.name}.`)},"Sent a relic crate through the floor circle to the Survey");
+}
+
+/* ================================================================
+   FACTIONS / PERKS / LIVES
+   ================================================================ */
+function register(key){
+  const f=S.factions[key];
+  if(f.registered){f.autoRenew=!f.autoRenew;addLog(f.autoRenew?`Will keep paying ${FAC[key].name} dues.`:`Stopped paying ${FAC[key].name} dues — registration lapses at month's end.`);commit();return}
+  if(!pay(cfg().registration,`${FAC[key].name} registration (month ${monthOf(S.clock.day)})`))return;
+  f.registered=true;f.autoRenew=true;addLog(`Registered with ${FAC[key].name}.`);commit();
+}
+function commissionChance(key){return 10+5*S.factions[key].level}
+function perkCost(p,toRank){return 100*cfg().perks[p.id].t*toRank}
+function buyPerk(id){
+  const p=PERKS.find(x=>x.id===id),pc=cfg().perks[id],r=prank(id);
+  if(S.stats[p.stat]<pc.t){toast("Not unlocked yet.");return}
+  if(r>=pc.max){toast("Already at max rank.");return}
+  const c=perkCost(p,r+1);
+  if(!pay(c,`Perk — ${p.name} rank ${r+1}`))return;
+  S.perks[id]=r+1;addLog(`Bought ${p.name} rank ${r+1}.`);
+  if(id==="node_sense")fillNodes();
+  commit();
+}
+function addStat(k){if(S.statPoints<1)return;S.statPoints--;S.stats[k]++;addLog(`+1 ${k[0].toUpperCase()+k.slice(1)}.`);commit()}
+function buyLife(){
+  if(S.lives>=livesCap()){toast("Already at the lives cap.");return}
+  if(!pay(cfg().lifeCost,"System Shop — Life & Care: 1 life"))return;S.lives++;addLog("Bought a life from the System Shop.");commit();
+}
+function spendLife(){
+  if(!confirm("Record a death? This spends one life and Finn respawns."))return;
+  if(S.lives<1){toast("No lives left!");return}
+  S.lives--;addLog("Finn died and respawned. One life spent.");commit();
+}
+
+/* ================================================================
+   END DAY
+   ================================================================ */
+function endDay(){
+  if(!confirm(`End Day ${S.clock.day}?`))return;
+  const notes=[];
+  if(!atHome()){S.location="home";S.pos=null;unload();notes.push("Finn sailed home and unloaded.")}
+  const oldMonth=monthOf(S.clock.day);
+  S.clock.day++;S.clock.min=420;
+  // baths
+  for(const o of S.orders)for(const s of o.slots)if(s.kind==="bath"&&s.bath==="soaking"){s.bath="soaked";notes.push(`Bath finished for ${s.req.spell.name}.`)}
+  // expiries & deadlines
+  const before=S.offers.length;S.offers=S.offers.filter(o=>o.expires>=S.clock.day);
+  if(before-S.offers.length)notes.push(`${before-S.offers.length} offer(s) expired.`);
+  for(const o of S.orders)if(o.urgent&&!o.missed&&S.clock.day>o.deadline){o.missed=true;notes.push(`Missed the deadline on ${o.title} — no urgency fee, no RP.`)}
+  // new month
+  const nm=monthOf(S.clock.day);
+  if(nm!==oldMonth){
+    notes.push(`Month ${nm} begins.`);
+    if(S.lives<livesCap()){S.lives++;notes.push("Monthly life granted.")}else notes.push("Monthly life lost — already at the cap.");
+    for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
+      if(st.autoRenew&&canPay(cfg().registration)){money(-cfg().registration,`${f.name} registration (month ${nm})`)}
+      else{st.registered=false;st.autoRenew=false;notes.push(`Registration with ${f.name} lapsed.`)}}
+  }
+  // commission rolls
+  let got=0;
+  for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
+    const ch=commissionChance(f.key);let n=Math.floor(ch/100);if(Math.random()*100<ch%100)n++;
+    for(let i=0;i<n;i++){S.offers.push(genOrder(f));got++}}
+  if(got)notes.push(`${got} new commission offer${got>1?"s":""} arrived.`);
+  // nodes
+  const had=S.nodes.length;fillNodes();if(S.nodes.length>had)notes.push(`${S.nodes.length-had} new Dredge Node${S.nodes.length-had>1?"s":""} glow on the water.`);
+  addLog(`— Day ${S.clock.day} begins. ${notes.join(" ")}`);
+  toast(notes.length?notes.join(" "):"A quiet night.");
+  commit();
+  if(GH.ready()&&GH.mode()!=="manual")GH.pushSave();
+}
+
+/* ================================================================
+   GITHUB DATA REPO
+   ================================================================ */
+const LS={save:"fff.save",gh:"fff.gh",db:"fff.db",dirty:"fff.dirty",synced:"fff.syncedAt",sha:"fff.saveSha"};
+function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
+let syncState="off",syncMsg="Not connected",pushTimer=null;
+function saveLocal(dirty){lsSet(LS.save,S);if(dirty){lsSet(LS.dirty,true);if(GH.ready()){syncState="dirty";syncMsg="Unsynced changes";if(GH.mode()==="change"){clearTimeout(pushTimer);pushTimer=setTimeout(()=>GH.pushSave(),12000)}}}}
+const b64enc=s=>{const b=new TextEncoder().encode(s);let bin="";for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(bin)};
+const b64dec=s=>new TextDecoder().decode(Uint8Array.from(atob(s.replace(/\s/g,"")),c=>c.charCodeAt(0)));
+const GH={
+  cfg(){return lsGet(LS.gh,null)},
+  ready(){const c=this.cfg();return !!(c&&c.owner&&c.repo&&c.token)},
+  mode(){return (this.cfg()||{}).mode||"change"},
+  url(path,withRef){const c=this.cfg();return `https://api.github.com/repos/${encodeURIComponent(c.owner)}/${encodeURIComponent(c.repo)}/contents/${path}`+(withRef?`?ref=${encodeURIComponent(c.branch||"main")}`:"")},
+  headers(){return {Authorization:"Bearer "+this.cfg().token,Accept:"application/vnd.github+json","X-GitHub-Api-Version":"2022-11-28"}},
+  async get(path){
+    const r=await fetch(this.url(path,true),{headers:this.headers(),cache:"no-store"});
+    if(r.status===404)return null;
+    if(!r.ok)throw new Error(`GitHub ${r.status} reading ${path}: ${(await r.text()).slice(0,140)}`);
+    const j=await r.json();
+    let text;
+    if(j.content&&j.encoding==="base64")text=b64dec(j.content);
+    else{const r2=await fetch(this.url(path,true),{headers:{...this.headers(),Accept:"application/vnd.github.raw+json"},cache:"no-store"});text=await r2.text()}
+    return {data:JSON.parse(text),sha:j.sha};
+  },
+  async put(path,data,sha,message){
+    const c=this.cfg();
+    const body={message,content:b64enc(JSON.stringify(data,null,1)),branch:c.branch||"main"};if(sha)body.sha=sha;
+    const r=await fetch(this.url(path,false),{method:"PUT",headers:{...this.headers(),"Content-Type":"application/json"},body:JSON.stringify(body)});
+    if(!r.ok){const e=new Error(`GitHub ${r.status} saving ${path}`);e.status=r.status;throw e}
+    return (await r.json()).content.sha;
+  },
+  async loadDBs(){
+    const [sp,rl]=await Promise.all([this.get("spells.json"),this.get("relics.json")]);
+    if(sp)DB.spells=sp.data.spells||sp.data;
+    if(rl)DB.relics=rl.data.relics||rl.data;
+    lsSet(LS.db,DB);
+    return {spells:!!sp,relics:!!rl};
+  },
+  async pullSave(force){
+    const rem=await this.get("save.json");
+    if(!rem){lsSet(LS.sha,null);return "none"}
+    lsSet(LS.sha,rem.sha);
+    const remoteAt=rem.data.meta?.savedAt||0,localAt=S?.meta?.savedAt||0,dirty=lsGet(LS.dirty,false);
+    if(force||!S||(!dirty&&remoteAt>=localAt)){S=migrate(rem.data);saveLocal(false);lsSet(LS.dirty,false);lsSet(LS.synced,remoteAt);return "loaded"}
+    if(dirty&&remoteAt>(lsGet(LS.synced,0))){
+      if(confirm("GitHub has a newer save than the last one this browser synced, and this browser also has unsynced changes.\n\nOK = load GitHub's save (this browser's changes are dropped)\nCancel = keep this browser's save (it will overwrite GitHub on next sync)")){S=migrate(rem.data);saveLocal(false);lsSet(LS.dirty,false);lsSet(LS.synced,remoteAt);return "loaded"}
+    }
+    return "kept";
+  },
+  async pushSave(){
+    if(!this.ready())return;
+    clearTimeout(pushTimer);
+    if(this.busy){this.again=true;return}
+    this.busy=true;
+    try{await this._push()}finally{this.busy=false}
+    if(this.again){this.again=false;return this.pushSave()}
+  },
+  async _push(){
+    syncState="busy";syncMsg="Saving to GitHub…";renderStatus();
+    try{
+      let sha=lsGet(LS.sha,null);
+      try{sha=await this.put("save.json",S,sha,`Day ${S.clock.day} ${fmtTime(S.clock.min)}`)}
+      catch(e){
+        if(e.status===409||e.status===422){
+          const rem=await this.get("save.json");
+          const remoteAt=rem?.data?.meta?.savedAt||0;
+          if(rem&&remoteAt>lsGet(LS.synced,0)&&!confirm("GitHub's save changed since this browser last synced (another device?). Overwrite it with this browser's save?"))throw new Error("Sync paused — resolve in Settings");
+          sha=await this.put("save.json",S,rem?.sha,`Day ${S.clock.day} ${fmtTime(S.clock.min)}`);
+        }else throw e;
+      }
+      lsSet(LS.sha,sha);lsSet(LS.dirty,false);lsSet(LS.synced,S.meta.savedAt);
+      syncState="ok";syncMsg="Saved to GitHub "+new Date().toLocaleTimeString([], {hour:"numeric",minute:"2-digit"});
+    }catch(e){syncState="err";syncMsg=e.message;console.error(e)}
+    renderStatus();
+  },
+};
+
+/* ================================================================
+   RENDER
+   ================================================================ */
+const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["ledger","Ledger"],["settings","Settings"]];
+function render(){renderStatus();renderTabs();const fn=VIEWS[UI.tab];$("#view").innerHTML=fn();if(UI.tab==="sea")bindMap()}
+function renderStatus(){
+  if(!S)return;
+  const loc=atHome()?"Lighthouse":S.location==="sea"?"Open water":"At a Dredge Node";
+  const dot={ok:"ok",dirty:"dirty",err:"err",off:"off",busy:"dirty"}[syncState];
+  $("#status").innerHTML=`
+   <span class="pill clock ${isLate()?"late":""}">Day <b>${S.clock.day}</b> · ${fmtTime(S.clock.min)}${isLate()?" · working late (+25%)":""}</span>
+   <span class="pill">Month <b>${monthOf(S.clock.day)}</b>, day ${dayOfMonth(S.clock.day)}</span>
+   <span class="pill">${loc}</span>
+   <span class="pill"><b>${cr(S.credits)}</b></span>
+   <span class="pill">Hold <b>${used(S.hold)}/${holdCap()}</b></span>
+   <span class="pill">Storage <b>${used(S.storage)}/${storageCap()}</b></span>
+   <span class="pill">Lives <b>${S.lives}/${livesCap()}</b></span>
+   <span class="spacer"></span>
+   <span class="pill sync" title="${esc(syncMsg)}"><span class="dot ${dot}"></span>${esc(GH.ready()?syncMsg:"Local only")}</span>`;
+}
+function renderTabs(){
+  const badge={orders:S.offers.length,finn:S.statPoints};
+  $("#tabs").innerHTML=TABS.map(([k,l])=>`<button class="${UI.tab===k?"on":""}" data-tab="${k}">${l}${badge[k]?`<span class="badge">${badge[k]}</span>`:""}</button>`).join("");
+}
+function dbBanner(){
+  if(DB.spells.length&&DB.relics.length)return "";
+  return `<div class="banner">${!DB.spells.length?"No spell database loaded — spell commissions are paused. ":""}${!DB.relics.length?"No relic database loaded — dredges won't find relics. ":""}Connect your data repo (or load the files) in <a href="#" data-tab="settings">Settings</a>.</div>`;
+}
+
+/* ---------- SEA ---------- */
+const DOCK={x:150,y:300};
+function trawlerPos(){if(atHome())return DOCK;if(S.location==="sea")return S.pos||DOCK;const n=nodeById(S.location);return n?{x:n.x,y:n.y}:DOCK}
+function mapSVG(){
+  const tp=trawlerPos(),sel=UI.selNode&&nodeById(UI.selNode);
+  const nodes=S.nodes.map(n=>{
+    const rev=revealed(n),hidden=n.tags.length-rev.length;
+    const tagTxt=rev.map(t=>TAG_ICON[t]).join(" ")+(hidden?" "+"?".repeat(hidden):"");
+    return `<g class="node ${UI.selNode===n.id?"sel":""}" data-node="${n.id}" tabindex="0" role="button" aria-label="Dredge Node, ${tripCost(n)} Credits">
+      <circle cx="${n.x}" cy="${n.y}" r="44" fill="transparent"/>
+      <circle class="halo" cx="${n.x}" cy="${n.y}" r="20"/>
+      <circle class="ring" cx="${n.x}" cy="${n.y}" r="22"/>
+      <text x="${n.x}" y="${n.y+4}">${esc(tagTxt.trim())}</text>
+      <text class="c" x="${n.x}" y="${n.y+(innerWidth<600?52:42)}">${tripCost(n)} Cr · ${n.left}/${n.attempts}</text></g>`}).join("");
+  const route=sel?`<line x1="${tp.x}" y1="${tp.y}" x2="${sel.x}" y2="${sel.y}" stroke="#ffe9a8" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>`:"";
+  return `<svg viewBox="0 0 800 500" role="img" aria-label="Dredge Node map of Krakoan waters">
+   <defs>
+    <radialGradient id="seaG" cx="65%" cy="50%" r="70%"><stop offset="0" stop-color="#1f5153"/><stop offset="1" stop-color="#0f2729"/></radialGradient>
+    <pattern id="waves" width="40" height="18" patternUnits="userSpaceOnUse"><path d="M0 9 Q10 3 20 9 T40 9" fill="none" stroke="#9ff0d8" stroke-opacity=".07" stroke-width="1.5"/></pattern>
+    <linearGradient id="landG" x1="0" x2="1"><stop offset="0" stop-color="#3b4a3a"/><stop offset="1" stop-color="#53604a"/></linearGradient>
+   </defs>
+   <rect width="800" height="500" fill="url(#seaG)"/><rect width="800" height="500" fill="url(#waves)"/>
+   <g stroke="#9ff0d8" stroke-opacity=".08" fill="none">${[1,2,3,4].map(i=>`<circle cx="150" cy="300" r="${i*150}"/>`).join("")}</g>
+   <path d="M0 0 H175 C190 60 160 110 196 160 C232 205 205 245 185 270 L150 300 C175 330 205 360 190 410 C178 455 210 480 205 500 H0 Z" fill="url(#landG)"/>
+   <path d="M150 300 C190 296 225 300 260 292" fill="none" stroke="#2c6c6a" stroke-width="10" stroke-linecap="round"/>
+   <path d="M150 300 C190 296 225 300 260 292" fill="none" stroke="#3f8c88" stroke-width="5" stroke-linecap="round" stroke-dasharray="2 9"/>
+   <text x="18" y="30" fill="#d8bf86" font-family="Cormorant Garamond" font-size="22" font-weight="700">KRAKOA</text>
+   <text x="20" y="48" fill="#b8c7b0" font-size="11" letter-spacing="2">LIGHTHOUSE COAST</text>
+   <g transform="translate(118 228)">
+     <path d="M-9 60 L-6 8 H6 L9 60 Z" fill="#141818" stroke="#d8bf86" stroke-width="1.2"/>
+     <rect x="-8" y="0" width="16" height="9" fill="#ffe9a8" opacity=".9"/>
+     <path d="M-9 0 L0 -9 L9 0 Z" fill="#3f8c80"/>
+     <path d="M8 4 L120 -40 L120 48 Z" fill="#ffe9a8" opacity=".06"/>
+     <path d="M10 62 H38 V48 L26 40 L10 48 Z" fill="#1f4641" stroke="#d8bf86" stroke-width=".8"/>
+   </g>
+   <rect x="${DOCK.x-14}" y="${DOCK.y-3}" width="28" height="6" fill="#7c5f2a"/>
+   <text x="${DOCK.x-6}" y="${DOCK.y+22}" fill="#d8bf86" font-size="11">Dock</text>
+   ${route}${nodes}
+   <g transform="translate(${tp.x} ${tp.y})" aria-label="Trawler"><path d="M-14 4 L14 4 L9 12 H-9 Z" fill="#a8823f" stroke="#2a1f0c"/><rect x="-5" y="-7" width="9" height="11" fill="#f4eee0" stroke="#2a1f0c"/><line x1="7" y1="-12" x2="7" y2="4" stroke="#2a1f0c" stroke-width="1.5"/></g>
+   <g transform="translate(560 474)" fill="#d8bf86" font-size="11"><text x="0" y="0">≈ Shallows ✿ Reef ⚓ Wreck ✦ Rich</text><text x="0" y="15">⌂ Ruins ♨ Vent ▼ Deep ⇊ Trench</text></g>
+  </svg>`;
+}
+function bindMap(){document.querySelectorAll(".node").forEach(g=>{const f=()=>{UI.selNode=g.dataset.node;render()};g.addEventListener("click",f);g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}})})}
+function itemRow(it,where){
+  const sp=itemSpace(it);
+  if(it.kind==="geode")return `<tr><td>🪨 <b>${it.size} geode</b> <span class="muted tiny">${(it.tags||[]).length?"from "+it.tags.map(t=>prank("sonar_sweep")?t:"?").join(", "):""}</span></td><td>${sp}</td><td>up to ${GEODES[it.size].max} gem${GEODES[it.size].max>1?"s":""}</td>
+    <td class="row">${where==="storage"?`<button class="btn sm" data-act="chisel" data-id="${it.id}" ${atHome()?"":"disabled"}>Chisel (${fmtDur(GEODES[it.size].chisel)})</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
+  return `<tr><td>🏺 <b>${esc(it.name)}</b> <span class="tag">${it.size}</span> <span class="tag">${it.condition}</span></td><td>${sp}</td><td>${it.sockets.length} sockets</td>
+    <td class="row">${where==="storage"?`<button class="btn sm" data-tab="relics">Open</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
+}
+const VIEWS={};
+VIEWS.sea=()=>{
+  const sel=UI.selNode&&nodeById(UI.selNode),here=nodeById(S.location);
+  let side="";
+  if(sel){
+    const rev=revealed(sel);
+    side=`<h3>Dredge Node <span class="meta">${sel.left}/${sel.attempts} attempts left</span></h3>
+     <dl class="kv"><dt>Fuel</dt><dd><b>${cr(tripCost(sel))}</b> Metered Mana</dd><dt>Travel</dt><dd>${fmtDur(isLate()?Math.ceil(tripTime(sel)*1.25):tripTime(sel))}</dd>
+     <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag">${TAG_ICON[t]} ${t}</span> <span class="muted small">${TAGS[t].lean}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}</dd></dl>
+     <hr class="rule"><div class="row">${S.location===sel.id?`<span class="tag ok">You're here</span>`:`<button class="btn brass" data-act="sail" data-id="${sel.id}">Sail here (${cr(tripCost(sel))})</button>`}</div>`;
+  }else side=`<h3>Dredge Nodes</h3><p class="muted small">Tap a glowing circle to see its fuel cost and any tags Finn can read. Every trip out costs Metered Mana; coming home is free.</p>`;
+  return `${dbBanner()}<div class="grid g2">
+   <div><div class="mapbox">${mapSVG()}</div></div>
+   <div class="grid">
+    <div class="panel">${side}</div>
+    <div class="panel"><h3>${atHome()?"Docked at the lighthouse":here?"On station":"Open water"}</h3>
+      <div class="row">
+       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (20 min)</button>
+       <button class="btn ghost" data-act="home" ${atHome()?"disabled":""}>Return home &amp; unload (30 min)</button>
+      </div>
+      ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${here.left} attempt${here.left===1?"":"s"} left before this node fades.</p>`:""}
+    </div>
+    <div class="panel"><h3>Trawler hold <span class="meta">${used(S.hold)}/${holdCap()}</span></h3>
+      <div class="bar brass"><i style="width:${Math.min(100,used(S.hold)/holdCap()*100)}%"></i></div>
+      ${S.hold.length?`<div class="tscroll"><table><tr><th>Item</th><th>Space</th><th></th><th></th></tr>${S.hold.map(i=>itemRow(i,"hold")).join("")}</table></div>`:`<div class="empty">Empty hold.</div>`}
+    </div>
+   </div></div>`;
+};
+
+/* ---------- WORKROOM ---------- */
+function gemRow(g){
+  const res=g.reserved?`<span class="tag warn">${g.reserved.startsWith("relic:")?"in a relic":"on a work order"}</span>`:"";
+  let cut;
+  if(g.state==="rough")cut=`<span class="muted">Rough</span>`;
+  else if(g.state==="plain")cut=`${esc(g.cut)} <span class="muted small">(plain)</span>`;
+  else cut=spellTxt(g.spell);
+  const val=gemValue(g.type,g.quality);
+  return `<tr><td>${gemDot(g.type)} <b>${g.type}</b></td><td>${rarTag(GEMS[g.type].r)}</td><td>${qTag(g.quality)}</td><td>${cut}</td><td>${cr(val)}</td>
+   <td>${res}${g.state==="rough"&&!g.reserved?`<button class="btn sm" data-act="cutopen" data-id="${g.id}">Cut…</button>`:""}</td></tr>`;
+}
+function cutPanel(){
+  const g=S.gems.find(x=>x.id===UI.cutGem);if(!g||g.state!=="rough")return "";
+  const schools=GEMS[g.type].s;
+  const opts=DB.spells.filter(s=>schools.includes(s.school)).map(s=>{const ok=canCutSpell(s);return `<option value="${esc(s.name)}" ${ok?"":"disabled"}>${s.level===0?"Cantrip":"L"+s.level} · ${esc(s.name)} (${s.school}) — ${cr(spellCost(s.level))}, mana ${cr(spellCost(s.level)*.2)}${ok?"":" — locked"}</option>`}).join("");
+  const wants=S.orders.flatMap(o=>o.slots.filter(s=>!slotPasses(s)&&roughFor(s).includes(g)).map(s=>`${o.title} (${s.label})`));
+  return `<div class="panel" id="cutpanel"><h3>Cut ${gemDot(g.type)} ${g.quality} ${g.type} <span class="meta">${schools.map(s=>shapeSVG(s)+" "+s).join(" · ")}</span></h3>
+   ${wants.length?`<p class="small">Could fill: ${wants.map(esc).join("; ")}</p>`:""}
+   <div class="grid g2">
+    <div><h4>Plain cut</h4><p class="small muted">1 hr · no mana · 2 XP</p>
+      <div class="row"><select id="plainSel">${PLAIN_CUTS.map(c=>`<option>${c}</option>`).join("")}</select><button class="btn" data-act="cutplain" data-id="${g.id}">Cut</button></div></div>
+    <div><h4>Spell cut</h4><p class="small muted">1 hr + 30 min per level · mana = 20% of spell price · 3 + level XP · max level now ${maxSpellLevel()}</p>
+      ${opts?`<div class="row"><select id="spellSel" style="max-width:100%">${opts}</select><button class="btn brass" data-act="cutspell" data-id="${g.id}">Cut</button></div>`:`<p class="empty">Load the spell database first.</p>`}</div>
+   </div><div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="cutclose">Close</button></div></div>`;
+}
+VIEWS.work=()=>{
+  const geodes=S.storage.filter(i=>i.kind==="geode"),relics=S.storage.filter(i=>i.kind==="relic");
+  const f=UI.vault,gems=S.gems.filter(g=>f==="all"||g.state===f).sort((a,b)=>a.state.localeCompare(b.state)||RARITIES.indexOf(GEMS[b.type].r)-RARITIES.indexOf(GEMS[a.type].r)||a.type.localeCompare(b.type)||qRank(b.quality)-qRank(a.quality));
+  const cnt=k=>S.gems.filter(g=>k==="all"||g.state===k).length;
+  return `${dbBanner()}${atHome()?"":`<div class="banner">Finn is out on the water. The workroom tools are back at the lighthouse.</div>`}
+  ${cutPanel()}
+  <div class="grid g2" style="margin-top:14px">
+   <div class="panel"><h3>Gem Vault <span class="meta">${S.gems.length} stones</span></h3>
+     <div class="row" style="margin-bottom:6px">${[["all","All"],["rough","Rough"],["plain","Plain cut"],["spell","Spell cut"]].map(([k,l])=>`<button class="btn sm ${f===k?"":"ghost"}" data-vault="${k}">${l} (${cnt(k)})</button>`).join("")}</div>
+     ${gems.length?`<div class="tscroll"><table><tr><th>Gem</th><th>Rarity</th><th>Quality</th><th>Cut</th><th>Value</th><th></th></tr>${gems.map(gemRow).join("")}</table></div>`:`<div class="empty">No stones here yet. Chisel a geode.</div>`}
+   </div>
+   <div class="grid">
+    <div class="panel"><h3>Storage Room <span class="meta">${used(S.storage)}/${storageCap()}</span></h3>
+      <div class="bar"><i style="width:${Math.min(100,used(S.storage)/storageCap()*100)}%"></i></div>
+      ${geodes.length+relics.length?`<div class="tscroll"><table><tr><th>Item</th><th>Space</th><th></th><th></th></tr>${[...geodes,...relics].map(i=>itemRow(i,"storage")).join("")}</table></div>`:`<div class="empty">Nothing waiting. Go dredge!</div>`}
+    </div>
+    <div class="panel"><h3>Parts drawer <span class="meta">${S.parts.length}</span></h3>${partsList()}</div>
+   </div>
+  </div>`;
+};
+function partsList(){
+  if(!S.parts.length)return `<div class="empty">No Hallmark parcels on hand.</div>`;
+  return `<table>${S.parts.map(p=>`<tr><td>${p.kind==="mounting"?`${p.metal} ${BASES[p.base].styles[p.slots]} <span class="muted small">${BASE_LABEL[p.base]}</span>`:esc(p.name)}</td><td>${cr(p.price)}</td><td>${p.reserved?`<span class="tag warn">on a work order</span>`:""}</td></tr>`).join("")}</table>`;
+}
+
+/* ---------- WORK ORDERS ---------- */
+function reqText(s){
+  const r=s.req;
+  if(s.kind==="gem"){
+    const g=`${gemDot(r.gemType)} <b>${r.gemType}</b>, ${r.minQ}${r.minQ==="Perfect"?"":" or better"}`;
+    if(r.cut==="rough")return `${g} — <i>uncut rough</i>`;
+    if(r.spell)return `${g}<br>${spellTxt(r.spell)}`;
+    return `${g} — ${esc(r.cut)} cut`;
+  }
+  if(s.kind==="replace")return `Any gem cut for ${spellTxt(r.spell)}`;
+  if(s.kind==="mounting")return `<b>${r.metal}</b> ${BASES[r.base].styles[r.slots]} ${BASE_LABEL[r.base].toLowerCase()} <span class="muted small">(${cr(mountingPrice(r.base,r.slots,r.metal))})</span>`;
+  if(s.kind==="ornament")return `<b>${r.name}</b> <span class="muted small">(${cr(ORNAMENTS[r.name])})</span>`;
+  if(s.kind==="accent")return `<b>${r.count} accent stones</b> — any plain-cut gems <span class="muted small">(${cr(r.count*ACCENT_PRICE)} to set)</span>`;
+  if(s.kind==="bath")return `Re-attune ${spellTxt(r.spell)}`;
+  return "";
+}
+function itemName(it){if(!it)return "";if(it.kind==="mounting")return `${it.metal} ${BASES[it.base].styles[it.slots]}`;if(it.kind==="ornament")return it.name;
+  return `${it.quality} ${it.type}${it.state==="spell"?" · "+it.spell.name:it.state==="plain"?" · "+it.cut:" · rough"}`}
+function slotHTML(o,s,i,offer){
+  const pass=!offer&&slotPasses(s);
+  let body="";
+  if(!offer&&o.stage==="filling"){
+    if(s.kind==="bath"){
+      body=s.bath==="waiting"?`<button class="btn sm brass" data-act="bath" data-o="${o.id}" data-i="${i}">Unset &amp; bathe (30 min, mana ${cr(spellCost(s.req.spell.level)/2*.2)})</button>`
+        :s.bath==="soaking"?`<span class="tag warn">Soaking — fresh crystal blooms overnight</span>`
+        :s.bath==="soaked"?`<button class="btn sm" data-act="refacet" data-o="${o.id}" data-i="${i}">Re-facet (${fmtDur(60+30*s.req.spell.level)})</button>`
+        :`<span class="tag ok">Re-faceted ✓</span>`;
+    }else if(s.kind==="accent"){
+      const have=fillOf(s),c=candidates(o,s),rc=roughFor(s);
+      body=`${have.map(g=>`<span class="tag">${itemName(g)} <a href="#" data-act="unaccent" data-o="${o.id}" data-i="${i}" data-g="${g.id}" aria-label="remove">×</a></span>`).join(" ")}
+       ${have.length<s.req.count?`<div class="row" style="margin-top:4px">${c.length?`<select data-fill="${o.id}" data-i="${i}"><option value="">Add a plain-cut stone…</option>${c.map(g=>`<option value="${g.id}">${esc(itemName(g))}</option>`).join("")}</select>`:""}
+       ${rc.length?`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}">Cut one from rough (1 hr)</button>`:""}</div>`:""}`;
+    }else{
+      const c=candidates(o,s),cur=fillOf(s);
+      const opts=(cur?[cur]:[]).concat(c);
+      body=`<div class="row"><select data-fill="${o.id}" data-i="${i}"><option value="">${opts.length?"— choose from inventory —":"nothing in inventory matches"}</option>${opts.map(it=>`<option value="${it.id}" ${cur&&cur.id===it.id?"selected":""}>${esc(itemName(it))}</option>`).join("")}</select>`;
+      if(!cur){
+        const rc=roughFor(s);
+        if(rc.length){const sp=s.req.spell;const t=sp?60+30*sp.level:60;const locked=sp&&!canCutSpell(sp);
+          body+=`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}" ${locked?"disabled title='Spell level or pattern not unlocked yet'":""}>Cut from rough (${fmtDur(t)}${sp?`, mana ${cr(spellCost(sp.level)*.2)}`:""})</button>`}
+        else if(s.kind==="gem"||s.kind==="replace")body+=`<span class="muted tiny">No qualifying rough — keep dredging.</span>`;
+      }
+      body+=`</div>`;
+    }
+  }
+  if(!offer&&o.stage!=="filling"&&o.frozen){const f=o.frozen[i];if(f)body=Array.isArray(f)?"":`<span class="small">${esc(itemName(f))}</span>`}
+  return `<div class="slot ${pass?"pass":""}"><div class="row between"><span class="lbl">${esc(s.label)}</span>${offer?"":pass?`<span class="tag ok">pass</span>`:`<span class="tag no">open</span>`}</div>
+   <div class="req">${reqText(s)}</div>${body?`<div style="margin-top:5px">${body}</div>`:""}</div>`;
+}
+function orderCard(o,offer){
+  const f=FAC[o.faction],p=priceOf(o,!offer),stages=["filling","assembled","packed"];
+  const si=stages.indexOf(o.stage);
+  const urgent=o.urgent?`<span class="tag urgent">Urgent +${cfg().urgentPct}%${offer?` · ${o.urgentDays}-day deadline`:o.missed?" — missed":` · due Day ${o.deadline}`}</span>`:"";
+  let foot="";
+  if(offer){
+    foot=`<div class="row between"><div><div class="muted tiny">Quoted</div><div class="price">${cr(o.quote)}</div><div class="muted tiny">Offer expires end of Day ${o.expires} · ${rpOf(o)} RP</div></div>
+     <div class="row"><button class="btn" data-act="accept" data-o="${o.id}" ${S.orders.length>=commissionCap()?"disabled title='Commission cap reached'":""}>Accept</button><button class="btn ghost" data-act="decline" data-o="${o.id}">Pass</button></div></div>`;
+  }else{
+    const all=o.slots.every(slotPasses),needParts=o.slots.some(s=>(s.kind==="mounting"||s.kind==="ornament")&&!s.fill);
+    let btns="";
+    if(o.stage==="filling"){
+      btns=`<button class="btn sm ghost" data-act="autofill" data-o="${o.id}">Auto-fill</button>${needParts?`<button class="btn sm ghost" data-act="buyparts" data-o="${o.id}">Order parts</button>`:""}
+       <button class="btn brass" data-act="assemble" data-o="${o.id}" ${all&&atHome()?"":"disabled"}>${o.type==="piece"?`Assemble (${fmtDur(60+15*o.slots.filter(s=>s.kind==="gem").length)})`:o.type==="reattune"?"Reset gem (15 min)":"Ready to pack"}</button>`;
+    }else if(o.stage==="assembled")btns=`<button class="btn brass" data-act="pack" data-o="${o.id}" ${atHome()?"":"disabled"}>Pack (15 min, ${cr(PACK_COST)})</button>`;
+    else if(o.stage==="packed")btns=`<button class="btn end" data-act="send" data-o="${o.id}" ${atHome()?"":"disabled"}>Send parcel (5 min)</button>`;
+    foot=`<div class="stages">${stages.map((s,i)=>`<span class="${i<=si?"on":""}"></span>`).join("")}</div>
+     <div class="row between"><div><div class="muted tiny">Live price · quoted ${cr(o.quote)}</div><div class="price">${cr(p.total)}</div>
+      <div class="muted tiny">You keep ${cr(p.net)} after the ${cfg().referral}% referral · ${rpOf(o)} RP · ${5*rpOf(o)} XP</div></div>
+      <div class="row">${btns}</div></div>
+     <details class="small" style="margin-top:6px"><summary>Price breakdown</summary><table>${p.lines.map(([l,v])=>`<tr><td>${esc(l)}</td><td>${cr(v)}</td></tr>`).join("")}
+      ${p.parts?`<tr><td>Lapidary Commission &amp; Sourcing Fee (${cfg().fee}% of parts)</td><td>${cr(p.fee)}</td></tr>`:""}
+      ${p.urgentFee?`<tr><td>Urgent</td><td>${cr(p.urgentFee)}</td></tr>`:""}
+      <tr><td><b>Total</b></td><td><b>${cr(p.total)}</b></td></tr><tr><td>Referral to faction</td><td>−${cr(p.referral)}</td></tr></table></details>
+     ${o.stage==="filling"?`<div style="margin-top:6px"><a href="#" class="small muted" data-act="abandon" data-o="${o.id}">Cancel commission</a></div>`:""}`;
+  }
+  return `<article class="wo"><div class="wo-h"><div class="fac">${esc(f.name)}</div><h4>${esc(o.title)}</h4>
+    <div class="row small"><span class="muted">for ${esc(o.who)}</span>${urgent}</div></div>
+    <div class="wo-b">${o.type==="reattune"?`<p class="small muted">Customer's ${esc(o.reattune.piece.toLowerCase())}${o.reattune.cracked?" — the gem is cracked and needs replacing.":" — faded, needs a Manasonic Bath."}</p>`:""}
+    ${o.slots.map((s,i)=>slotHTML(o,s,i,offer)).join("")}</div><div class="wo-f">${foot}</div></article>`;
+}
+VIEWS.orders=()=>`${dbBanner()}
+  <div class="row between" style="margin-bottom:10px"><h2>Active work orders <span class="muted small">${S.orders.length}/${commissionCap()}</span></h2></div>
+  ${S.orders.length?`<div class="cards">${S.orders.map(o=>orderCard(o,false)).join("")}</div>`:`<div class="panel empty">No active commissions. Accept an offer below.</div>`}
+  <h2 style="margin:22px 0 10px">Offers <span class="muted small">${S.offers.length}</span></h2>
+  ${S.offers.length?`<div class="cards">${S.offers.map(o=>orderCard(o,true)).join("")}</div>`:`<div class="panel empty">No offers waiting. Registered factions roll for commissions each time you End Day.</div>`}
+  ${S.done.length?`<h2 style="margin:22px 0 10px">Delivered</h2><div class="panel tscroll"><table><tr><th>Day</th><th>Commission</th><th>Faction</th><th>Total</th><th>Kept</th><th>RP</th></tr>
+   ${S.done.slice(0,40).map(d=>`<tr><td>${d.day}</td><td>${esc(d.title)} ${d.urgent?`<span class="tag ${d.missed?"no":"urgent"}">${d.missed?"late":"urgent"}</span>`:""}</td><td class="small">${esc(FAC[d.faction].name)}</td><td>${cr(d.total)}</td><td>${cr(d.net)}</td><td>${d.rp}</td></tr>`).join("")}</table></div>`:""}`;
+
+/* ---------- RELICS ---------- */
+VIEWS.relics=()=>{
+  const rs=S.storage.filter(i=>i.kind==="relic"),inHold=S.hold.filter(i=>i.kind==="relic").length;
+  const cards=rs.map(r=>{
+    const p=relicPayout(r);
+    const socks=r.sockets.map((s,i)=>{
+      const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];
+      const c=socketCands(s);
+      return `<div class="sock ${g?"filled":""}"><div class="row">${shapeSVG(s.school)}<b>${s.level===0?"Cantrip":ordinal(s.level)}</b> ${s.school}</div>
+        <div class="tiny muted">${SCHOOL_SHAPE[s.school]} socket${s.level?`, ${facets(s.level)} facets deep`:", smooth dome"}</div>
+        ${r.stage==="packed"?`<div class="small">${g?esc(itemName(g)):""}</div>`:`<select data-sock="${r.id}" data-i="${i}" style="margin-top:4px;width:100%"><option value="">${g||c.length?"— empty —":"no matching cut gem"}</option>${g?`<option value="${g.id}" selected>${esc(itemName(g))}</option>`:""}${c.map(x=>`<option value="${x.id}">${esc(itemName(x))}</option>`).join("")}</select>`}</div>`}).join("");
+    return `<div class="panel"><h3>${esc(r.name)} <span class="meta">${r.size} · ${r.condition} ×${CONDITIONS[r.condition].mod}</span></h3>
+      <p class="small muted">${esc(r.description||"")}</p>
+      <div class="sockets">${socks}</div>
+      <div class="row between"><div><div class="muted tiny">Survey payout = (${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod}</div><div class="price">${cr(p.total)}</div><div class="muted tiny">${10*r.sockets.length} XP on sale</div></div>
+      <div class="row">${r.stage==="dormant"?`<span class="tag">Dormant — ${r.sockets.filter(s=>!s.gem).length} socket(s) empty</span>`:r.stage==="active"?`<span class="tag ok">Active</span><button class="btn brass" data-act="packrelic" data-id="${r.id}" ${atHome()?"":"disabled"}>Crate it (30 min, ${cr(RELIC_SIZES[r.size].crate)})</button>`:`<button class="btn end" data-act="sendrelic" data-id="${r.id}">Send to the Survey (5 min)</button>`}</div></div></div>`;
+  }).join("");
+  return `${dbBanner()}${inHold?`<div class="banner">${inHold} relic(s) still in the trawler hold — bring them home to work on them.</div>`:""}
+   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. The Survey pays for its base value plus the gems (base × Quality), times its condition.</p>
+   ${rs.length?`<div class="grid">${cards}</div>`:`<div class="panel empty">No relics in storage. Wreck and Ruins nodes turn them up more often.</div>`}
+   ${S.relics.length?`<h2 style="margin:22px 0 10px">Sold to the Survey</h2><div class="panel"><table><tr><th>Day</th><th>Relic</th><th>Condition</th><th>Paid</th></tr>${S.relics.slice(0,30).map(x=>`<tr><td>${x.day}</td><td>${esc(x.name)} <span class="muted small">${x.size}</span></td><td>${x.condition}</td><td>${cr(x.total)}</td></tr>`).join("")}</table></div>`:""}`;
+};
+
+/* ---------- HALLMARK ---------- */
+VIEWS.hallmark=()=>{
+  const b=UI.hmBase||"Ring",B=BASES[b],sl=Math.min(Math.max(UI.hmSlots||B.min,B.min),B.max),m=UI.hmMetal||"Silver";
+  return `<div class="grid g2">
+   <div class="panel"><h3>Hallmark's Craftsmen &amp; Co. — Catalogue</h3>
+    <p class="small muted">Parcels appear on the receiving circle by the workbench. Ordering takes 5 minutes. Mounting = (base price + 5 Cr per slot beyond the first) × metal.</p>
+    <div class="row" style="align-items:flex-end">
+     <label class="f">Base type<select id="hmBase">${Object.keys(BASES).map(k=>`<option value="${k}" ${k===b?"selected":""}>${BASE_LABEL[k]} — ${cr(BASES[k].price)}</option>`).join("")}</select></label>
+     <label class="f">Style<select id="hmSlots">${Object.entries(B.styles).map(([n,name])=>`<option value="${n}" ${+n===sl?"selected":""}>${name} (${n})</option>`).join("")}</select></label>
+     <label class="f">Metal<select id="hmMetal">${Object.keys(METALS).map(k=>`<option ${k===m?"selected":""}>${k}</option>`).join("")}</select></label>
+     <button class="btn brass" data-act="buymount">Order — ${cr(mountingPrice(b,sl,m))}</button>
+    </div>
+    <hr class="rule"><h4>Ornamentation</h4>
+    <div class="row">${Object.entries(ORNAMENTS).map(([k,v])=>`<button class="btn sm ghost" data-act="buyorn" data-name="${k}">${k} — ${cr(v)}</button>`).join("")}</div>
+    <p class="small muted">Accent stones: ${cr(ACCENT_PRICE)} per stone to set, charged at assembly. Finn supplies the stones (plain-cut gems — a good home for Crude Commons).</p>
+    <hr class="rule"><h4>Metals</h4><table>${Object.entries(METALS).map(([k,v])=>`<tr><td>${k}</td><td>×${v}</td></tr>`).join("")}</table>
+   </div>
+   <div class="panel"><h3>Parts drawer <span class="meta">${S.parts.length}</span></h3>${partsList()}
+    <p class="small muted">Tip: each work order card has an <b>Order parts</b> button that buys exactly what its mounting and ornament slots ask for.</p></div>
+  </div>`;
+};
+
+/* ---------- FACTIONS ---------- */
+VIEWS.factions=()=>`<p class="muted small">Registration is ${cr(cfg().registration)}/month per faction; only registered factions roll for commissions when you End Day (chance 10% + 5% per Reputation Level). Each faction takes a ${cfg().referral}% referral cut. Reputation never drops if you stop paying.</p>
+ <div class="cards">${FACTIONS.map(f=>{const st=S.factions[f.key],need=rpToReach(st.level+1),ch=commissionChance(f.key);
+  return `<div class="panel"><h3>${esc(f.name)}</h3><div class="muted small">${esc(f.reps)}</div>
+   <div class="row between" style="margin:8px 0 4px"><span>Reputation Level <b>${st.level}</b></span><span class="small muted">${st.rp}/${need} RP</span></div>
+   <div class="bar"><i style="width:${st.rp/need*100}%"></i></div>
+   <p class="small">Daily commission chance: <b>${ch}%</b>${ch>100?` (1 guaranteed + ${ch%100}% for a second)`:""}</p>
+   <div class="row">${st.registered?`<span class="tag ok">Registered</span><button class="btn sm ghost" data-act="reg" data-k="${f.key}">${st.autoRenew?"Stop paying dues":"Resume dues"}</button>${st.autoRenew?"":`<span class="tiny muted">lapses at month's end</span>`}`
+     :`<button class="btn sm brass" data-act="reg" data-k="${f.key}">Register — ${cr(cfg().registration)}</button>`}</div></div>`}).join("")}</div>`;
+
+/* ---------- FINN ---------- */
+VIEWS.finn=()=>{
+  const need=xpToReach(S.level+1),combined=S.stats.insight+S.stats.precision+S.stats.renown;
+  const stat=(k,label,gov)=>`<div class="statbox"><div class="muted small">${label}</div><div class="n">${S.stats[k]}</div><div class="tiny">${growthTier(S.stats[k])}</div>
+   <div class="tiny muted" style="margin:4px 0">${gov}</div>${S.statPoints?`<button class="btn sm" data-act="stat" data-k="${k}">+1</button>`:""}</div>`;
+  return `<div class="grid g2"><div class="grid">
+   <div class="panel"><h3>Finley Zora Anderson <span class="meta">Concept of Treasure</span></h3>
+    <div class="row between"><span>Level <b>${S.level}</b> · Combined Level <b>${combined}</b></span><span class="small muted">${S.xp}/${need} XP to Level ${S.level+1}</span></div>
+    <div class="bar brass" style="margin:6px 0 12px"><i style="width:${S.xp/need*100}%"></i></div>
+    ${S.statPoints?`<div class="banner">${S.statPoints} stat point${S.statPoints>1?"s":""} to spend.</div>`:""}
+    <div class="grid g3">${stat("insight","Insight","Dredging, nodes, finds, gem rolls")}${stat("precision","Precision","Cutting, spell levels, Quality, the Bath")}${stat("renown","Renown","Factions, Reputation, commissions, prices")}</div>
+   </div>
+   <div class="panel"><h3>Perks</h3><div class="tscroll"><table><tr><th>Perk</th><th>Needs</th><th>Rank</th><th>Effect per rank</th><th></th></tr>
+    ${PERKS.map(p=>{const pc=cfg().perks[p.id],r=prank(p.id),un=S.stats[p.stat]>=pc.t,max=r>=pc.max;
+      return `<tr><td><b>${p.name}</b></td><td class="small">${p.stat[0].toUpperCase()+p.stat.slice(1)} ${pc.t}</td><td>${r}/${pc.max}</td><td class="small">${p.effect}</td>
+       <td>${max?`<span class="tag ok">max</span>`:`<button class="btn sm" data-act="perk" data-id="${p.id}" ${un?"":"disabled"}>${un?`Rank ${r+1} — ${cr(perkCost(p,r+1))}`:"Locked"}</button>`}</td></tr>`}).join("")}</table></div>
+    <p class="tiny muted">Thresholds and max ranks are placeholders until they're set in the doc — edit them in Settings.</p></div>
+  </div><div class="grid">
+   <div class="panel"><h3>Lives</h3><div class="row between"><span style="font-size:1.6rem">${"♥".repeat(S.lives)}<span class="muted">${"♡".repeat(Math.max(0,livesCap()-S.lives))}</span></span><span class="small muted">${S.lives}/${livesCap()}</span></div>
+    <p class="small muted">+1 life each month (lost if at the cap). Life &amp; Care sells lives at ${cr(cfg().lifeCost)}.</p>
+    <div class="row"><button class="btn sm brass" data-act="buylife" ${S.lives>=livesCap()?"disabled":""}>Buy a life — ${cr(cfg().lifeCost)}</button><button class="btn sm danger" data-act="die">Record a death</button></div></div>
+   <div class="panel"><h3>Cut patterns <span class="meta">spell levels up to ${maxSpellLevel()}</span></h3>
+    <p class="small muted">She learns each school's cut once. Max spell level = ${cfg().spellLevelBase} + Precision ÷ ${cfg().precisionPerSpellLevel} (placeholder, editable in Settings).</p>
+    <table>${SCHOOLS.map(s=>`<tr><td>${shapeSVG(s)} <b>${s}</b></td><td class="small muted">${SCHOOL_SHAPE[s]}</td><td><label class="small"><input type="checkbox" data-pattern="${s}" ${S.patterns[s]?"checked":""}> learned</label></td></tr>`).join("")}</table></div>
+  </div></div>`;
+};
+
+/* ---------- LEDGER ---------- */
+VIEWS.ledger=()=>{
+  const t=UI.ledgerTab;
+  return `<div class="row" style="margin-bottom:10px"><button class="btn sm ${t==="events"?"":"ghost"}" data-ltab="events">Journal</button><button class="btn sm ${t==="money"?"":"ghost"}" data-ltab="money">Credits</button></div>
+  <div class="panel log">${t==="events"?(S.log.map(l=>`<div><span class="t">${l.at}</span>${esc(l.text)}</div>`).join("")||`<div class="empty">Nothing yet.</div>`)
+   :(S.ledger.map(l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`).join("")||`<div class="empty">No transactions yet.</div>`)}</div>`;
+};
+
+/* ---------- SETTINGS ---------- */
+VIEWS.settings=()=>{
+  const c=GH.cfg()||{owner:"8BitBoar",repo:"finns-facets-data",branch:"main",token:"",mode:"change"};
+  const C=cfg();
+  const num=(k,label,step=1)=>`<label class="f">${label}<input type="number" step="${step}" data-cfg="${k}" value="${C[k]}"></label>`;
+  return `<div class="grid g2"><div class="grid">
+   <div class="panel"><h3>GitHub data repo</h3>
+    <p class="small muted">Your spells, relics and save live in a private repo. The token stays in this browser only. Use a fine-grained token limited to the data repo with <b>Contents: Read and write</b>.</p>
+    <div class="row" style="align-items:flex-end">
+     <label class="f">Owner<input type="text" id="ghOwner" value="${esc(c.owner)}"></label>
+     <label class="f">Repo<input type="text" id="ghRepo" value="${esc(c.repo)}"></label>
+     <label class="f">Branch<input type="text" id="ghBranch" value="${esc(c.branch||"main")}" style="width:90px"></label>
+    </div>
+    <div class="row" style="align-items:flex-end;margin-top:6px">
+     <label class="f" style="flex:1">Token<input type="password" id="ghToken" value="${esc(c.token)}" autocomplete="off" placeholder="github_pat_…"></label>
+     <label class="f">Auto-save<select id="ghMode"><option value="change" ${c.mode==="change"?"selected":""}>After changes</option><option value="endday" ${c.mode==="endday"?"selected":""}>After End Day</option><option value="manual" ${c.mode==="manual"?"selected":""}>Manual only</option></select></label>
+    </div>
+    <div class="row" style="margin-top:10px"><button class="btn" data-act="ghconnect">Save &amp; connect</button><button class="btn ghost" data-act="ghpush" ${GH.ready()?"":"disabled"}>Save to GitHub now</button><button class="btn ghost" data-act="ghpull" ${GH.ready()?"":"disabled"}>Load save from GitHub</button><button class="btn ghost" data-act="ghforget">Forget token</button></div>
+    <p class="small" style="margin-top:8px"><span class="dot ${({ok:"ok",dirty:"dirty",err:"err",off:"off",busy:"dirty"})[syncState]}"></span> ${esc(syncMsg)}</p>
+    <p class="small muted">Databases loaded: ${DB.spells.length} spells, ${DB.relics.length} relics.</p>
+   </div>
+   <div class="panel"><h3>Files</h3>
+    <div class="row"><button class="btn ghost" data-act="export">Download save.json</button><label class="btn ghost">Import save<input type="file" accept=".json" id="impSave" hidden></label></div>
+    <p class="small muted" style="margin-top:8px">Offline? Load the databases from files instead:</p>
+    <div class="row"><label class="btn ghost">Load spells.json<input type="file" accept=".json" id="impSpells" hidden></label><label class="btn ghost">Load relics.json<input type="file" accept=".json" id="impRelics" hidden></label></div>
+    <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set Credits…</button><button class="btn sm danger" data-act="newgame">New game</button></div>
+   </div></div>
+   <div class="grid">
+   <div class="panel"><h3>Rules &amp; placeholders</h3>
+    <p class="small muted">Numbers from the docs are the defaults. Ones marked * are open threads in the docs, picked so the tool runs — change them freely.</p>
+    <div class="row">${num("daysPerMonth","Days per month*")}${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Dues / month")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}</div>
+    <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %*")}${num("relicWreck","+ Wreck %*")}${num("relicRuins","+ Ruins %*")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
+    <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
+    <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
+    <hr class="rule"><h4>Gem base prices*</h4><p class="tiny muted">One number per gem, inside its rarity's range.</p>
+    <div class="row">${Object.keys(GEMS).map(g=>`<label class="f">${gemDot(g)} ${g}<input type="number" data-gemprice="${g}" value="${C.gemPrices[g]}" style="width:75px"></label>`).join("")}</div>
+   </div></div></div>`;
+};
+
+/* ================================================================
+   EVENTS
+   ================================================================ */
+document.addEventListener("click",e=>{
+  const t=e.target.closest("[data-tab],[data-act],[data-vault],[data-ltab]");if(!t)return;
+  if(t.dataset.tab){e.preventDefault();UI.tab=t.dataset.tab;render();window.scrollTo({top:0});return}
+  if(t.dataset.vault){UI.vault=t.dataset.vault;render();return}
+  if(t.dataset.ltab){UI.ledgerTab=t.dataset.ltab;render();return}
+  const a=t.dataset.act,id=t.dataset.id,o=t.dataset.o,i=+t.dataset.i;
+  if(t.tagName==="A")e.preventDefault();
+  switch(a){
+   case"sail":sail(id);break; case"dredge":dredge();break; case"home":returnHome();break;
+   case"toss":toss(t.dataset.where,id);break; case"chisel":chisel(id);break;
+   case"cutopen":UI.cutGem=id;render();$("#cutpanel")?.scrollIntoView({behavior:"smooth",block:"start"});break;
+   case"cutclose":UI.cutGem=null;render();break;
+   case"cutplain":if(cutPlain(id,$("#plainSel").value)){UI.cutGem=null;render()}break;
+   case"cutspell":if(cutSpell(id,$("#spellSel").value)){UI.cutGem=null;render()}break;
+   case"accept":accept(o);break; case"decline":decline(o);break; case"abandon":abandon(o);break;
+   case"autofill":autoFill(o);break; case"buyparts":buyPartsFor(o);break; case"cutfor":cutFor(o,i);break;
+   case"unaccent":unfillAccent(o,i,t.dataset.g);break;
+   case"bath":startBath(o,i);break; case"refacet":refacet(o,i);break;
+   case"assemble":assemble(o);break; case"pack":packOrder(o);break; case"send":sendOrder(o);break;
+   case"packrelic":packRelic(id);break; case"sendrelic":sendRelic(id);break;
+   case"buymount":orderMounting(UI.hmBase||"Ring",Math.min(Math.max(UI.hmSlots||BASES[UI.hmBase||"Ring"].min,BASES[UI.hmBase||"Ring"].min),BASES[UI.hmBase||"Ring"].max),UI.hmMetal||"Silver");break;
+   case"buyorn":orderOrnament(t.dataset.name);break;
+   case"reg":register(t.dataset.k);break;
+   case"stat":addStat(t.dataset.k);break; case"perk":buyPerk(id);break;
+   case"buylife":buyLife();break; case"die":spendLife();break;
+   case"ghconnect":ghConnect();break; case"ghpush":GH.pushSave();break;
+   case"ghpull":GH.pullSave(true).then(r=>{toast(r==="none"?"No save.json in the repo yet.":"Loaded the save from GitHub.");render()}).catch(err=>toast(err.message));break;
+   case"ghforget":{const c=GH.cfg();if(c){c.token="";lsSet(LS.gh,c)}syncState="off";syncMsg="Not connected";render();break}
+   case"export":download("save.json",JSON.stringify(S,null,1));break;
+   case"theme":{const r=document.documentElement,n={auto:"light",light:"dark",dark:"auto"}[r.dataset.theme||"auto"];if(n==="auto")delete r.dataset.theme;else r.dataset.theme=n;lsSet("fff.theme",n);render();break}
+   case"credits":{const v=prompt("Set Credits to:",S.credits);if(v!=null&&!isNaN(+v)){money(+v-S.credits,"Manual adjustment");commit()}break}
+   case"newgame":if(confirm("Start a brand-new save? Your current one is replaced (download it first if you want a copy).")){newGame();lsSet(LS.dirty,true);commit()}break;
+  }
+});
+document.addEventListener("change",e=>{
+  const t=e.target;
+  if(t.dataset.fill){const o=t.dataset.fill,i=+t.dataset.i;fillSlot(o,i,t.value||null);return}
+  if(t.dataset.sock){socketGem(t.dataset.sock,+t.dataset.i,t.value||null);return}
+  if(t.dataset.pattern){S.patterns[t.dataset.pattern]=t.checked;commit();return}
+  if(t.dataset.cfg){S.config[t.dataset.cfg]=+t.value;commit();return}
+  if(t.dataset.perk){S.config.perks[t.dataset.perk][t.dataset.f]=+t.value;commit();return}
+  if(t.dataset.gemprice){S.config.gemPrices[t.dataset.gemprice]=+t.value;commit();return}
+  if(t.id==="hmBase"){UI.hmBase=t.value;UI.hmSlots=BASES[t.value].min;render();return}
+  if(t.id==="hmSlots"){UI.hmSlots=+t.value;render();return}
+  if(t.id==="hmMetal"){UI.hmMetal=t.value;render();return}
+  if(t.id==="impSave"||t.id==="impSpells"||t.id==="impRelics"){
+    const file=t.files[0];if(!file)return;file.text().then(txt=>{
+      try{const j=JSON.parse(txt);
+        if(t.id==="impSave"){S=migrate(j);lsSet(LS.dirty,true);commit();toast("Save imported.")}
+        else if(t.id==="impSpells"){DB.spells=j.spells||j;lsSet(LS.db,DB);toast(`${DB.spells.length} spells loaded.`);render()}
+        else{DB.relics=j.relics||j;lsSet(LS.db,DB);toast(`${DB.relics.length} relics loaded.`);render()}
+      }catch(err){toast("That file isn't valid JSON.")}});
+  }
+});
+$("#endDayBtn").addEventListener("click",endDay);
+function download(name,text){const a=document.createElement("a");a.href=URL.createObjectURL(new Blob([text],{type:"application/json"}));a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000)}
+async function ghConnect(){
+  const c={owner:$("#ghOwner").value.trim(),repo:$("#ghRepo").value.trim(),branch:$("#ghBranch").value.trim()||"main",token:$("#ghToken").value.trim(),mode:$("#ghMode").value};
+  lsSet(LS.gh,c);
+  if(!GH.ready()){toast("Fill in owner, repo and token.");return}
+  syncState="busy";syncMsg="Connecting…";render();
+  try{
+    const got=await GH.loadDBs();
+    const r=await GH.pullSave(false);
+    if(r==="none"){await GH.pushSave()}
+    else{syncState=lsGet(LS.dirty,false)?"dirty":"ok";syncMsg=r==="loaded"?"Loaded save from GitHub":"Connected — this browser's save kept"}
+    toast(`Connected. ${DB.spells.length} spells, ${DB.relics.length} relics${got.spells&&got.relics?"":" (a database file is missing from the repo)"}.`);
+  }catch(err){syncState="err";syncMsg=err.message}
+  render();
+}
+
+/* ================================================================
+   BOOT
+   ================================================================ */
+(async function boot(){
+  const th=lsGet("fff.theme","auto");if(th!=="auto")document.documentElement.dataset.theme=th;
+  DB=lsGet(LS.db,{spells:[],relics:[]});
+  const local=lsGet(LS.save,null);
+  if(local)S=migrate(local);else newGame();
+  render();
+  if(GH.ready()){
+    syncState="busy";syncMsg="Syncing…";renderStatus();
+    try{await GH.loadDBs();const r=await GH.pullSave(false);if(r==="none")await GH.pushSave();
+      else{syncState=lsGet(LS.dirty,false)?"dirty":"ok";syncMsg=lsGet(LS.dirty,false)?"Unsynced changes":"In sync with GitHub"}}
+    catch(e){syncState="err";syncMsg=e.message}
+    render();
+  }else{saveLocal(false)}
+  addEventListener("beforeunload",e=>{if(GH.ready()&&lsGet(LS.dirty,false)&&GH.mode()!=="manual"){GH.pushSave()}});
+})();
+</script>
+</body>
+</html>
