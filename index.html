@@ -219,7 +219,8 @@ const GEMS={
  "Ruby":{r:"Mythic Rare",s:["Evocation"],c:"#c0142f"},
 };
 // Base prices: one number per gem, inside each rarity's range (editable in Settings)
-const DEFAULT_GEM_PRICES={"Clear quartz":10,"Rose quartz":12,"Citrine":15,"Onyx":18,"Garnet":20,"Amethyst":25,"Topaz":35,"Moonstone":40,"Aquamarine":45,"Opal":60,"Emerald":80,"Sapphire":100,"Ruby":160,"Diamond":200};
+const DEFAULT_GEM_PRICES={"Onyx":10,"Rose quartz":12,"Clear quartz":15,"Citrine":16,"Garnet":20,"Amethyst":25,"Moonstone":30,"Topaz":35,"Aquamarine":45,"Opal":65,"Emerald":85,"Sapphire":100,"Ruby":180,"Diamond":200};
+const OLD_GEM_PRICES={"Clear quartz":10,"Rose quartz":12,"Citrine":15,"Onyx":18,"Garnet":20,"Amethyst":25,"Topaz":35,"Moonstone":40,"Aquamarine":45,"Opal":60,"Emerald":80,"Sapphire":100,"Ruby":160,"Diamond":200};
 const QUALITIES=["Crude","Fine","Perfect"];
 const QUALITY={Crude:{odds:70,mod:1},Fine:{odds:25,mod:1.5},Perfect:{odds:5,mod:2.5}};
 const PLAIN_CUTS=["Round Brilliant","Oval","Cushion","Princess","Radiant","Pear","Marquise","Heart","Trillion","Emerald","Asscher","Baguette","Rose","Briolette","Cabochon"];
@@ -368,7 +369,7 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:4, meta:{savedAt:Date.now(),created:Date.now()},
+    version:5, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
@@ -416,6 +417,10 @@ function migrate(s){
       if(o.stage==="filling"||o.stage==="offer"){for(const id of sl.fill||[]){const g=(s.gems||[]).find(x=>x.id===id);if(g&&g.state!=="accent")delete g.reserved}
         sl.fill=(sl.fill||[]).filter(id=>((s.gems||[]).find(x=>x.id===id)||{}).state==="accent")}}
     s.version=4;
+  }
+  if(s.version<5){ // Gem Catalogue prices from the doc; keep any price you changed yourself
+    for(const g in DEFAULT_GEM_PRICES)if(s.config.gemPrices[g]===OLD_GEM_PRICES[g])s.config.gemPrices[g]=DEFAULT_GEM_PRICES[g];
+    s.version=5;
   }
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
@@ -1780,7 +1785,7 @@ VIEWS.settings=()=>{
     <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
     <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
     <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
-    <hr class="rule"><h4>Gem base prices*</h4><p class="tiny muted">One number per gem, inside its rarity's range.</p>
+    <hr class="rule"><h4>Gem base prices</h4><p class="tiny muted">From the doc's Gem Catalogue. One number per gem, inside its rarity's range.</p>
     <div class="row">${Object.keys(GEMS).map(g=>`<label class="f">${gemDot(g)} ${g}<input type="number" data-gemprice="${g}" value="${C.gemPrices[g]}" style="width:75px"></label>`).join("")}</div>
    </div></div></div>`;
 };
