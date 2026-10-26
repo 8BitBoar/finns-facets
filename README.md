@@ -29,9 +29,14 @@ The token is stored only in that browser. Do it once per device (laptop, iPhone)
 1. **Sea** — tap a Dredge Node, sail out (pay its fuel), dredge until the node fades or the hold fills, return home to unload.
 2. **Workroom** — chisel geodes, then cut stones plain or with a spell.
 3. **Work Orders** — accept offers, fill each slot from inventory (or "Cut from rough" straight into a slot, "Order parts" for mountings/ornaments), assemble, pack, send.
-4. **Relics** — socket matching spell-cut gems; once active, crate it and send it to the Survey.
-5. **End Day** — standing fees come out automatically: the 100 Cr Interplanar Trade Permit on opening day and each anniversary, 50 Cr boat upkeep on the 1st, the 5% Krakoan Trade Levy on each delivered commission, and the 10% Salvage Royalty on each relic sale. On the 1st of each month the Books also close: Finn's 300 Cr owner's draw moves from the business into her wallet, and Emma Frost gets 20% of the month's distributable profit (income − business costs − draw; nothing in a loss month). The **Books** tab shows the progress bar toward the 1,059,600 Cr cap and the buyout button.
-6. **Also on End Day** — registered factions roll for commissions, new nodes appear, bath soaks finish, offers expire, deadlines tick; a new month brings dues and the monthly life.
+4. **Relics** — socket matching spell-cut gems; once active, crate it, then sell it to the Survey (instant, with a Survey Standing bonus and a monthly limit) or consign it to the Registry Salon auction (bids each night, sells after 4–7 days).
+5. **End Day** — standing fees come out automatically: the 100 Cr Interplanar Trade Permit on opening day and each anniversary, 50 Cr boat upkeep on the 1st, the 5% Krakoan Trade Levy on each delivered commission, and the 10% Salvage Royalty on each relic sale. Payroll runs from the **Salary Ledger** (Books): Finn's 300 Cr salary goes to her wallet on the 1st, hires can be paid monthly, weekly or every 2 weeks, and any shortfall is owed and paid off nightly. On the 1st the Books also close: Emma Frost gets 20% of the month's distributable profit (income − business costs − salaries; nothing in a loss month). The **Books** tab shows the progress bar toward the 1,059,600 Cr cap and the buyout button.
+6. **Also on End Day** — registered factions roll for commissions, new nodes appear, bath soaks finish, offers expire, deadlines tick; a new month brings faction dues (20 Cr + 5 Cr per Reputation Level) and the monthly life.
+
+## Books
+
+- **Business**, **Finn's wallet** and **Journal** each have a month dropdown (24 months kept; entries from before dates were stored are under *Earlier*).
+- **Journal → Export a day** downloads a Markdown summary of one day's activity for use in scene-writing.
 
 ## Credits
 

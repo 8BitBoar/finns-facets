@@ -71,7 +71,7 @@ main{padding:18px 0 40px}
 @media (max-width:860px){.g2,.g3{grid-template-columns:1fr}}
 .panel{background:var(--card);border:1px solid var(--line);border-radius:var(--r);box-shadow:var(--shadow);padding:14px 16px}
 .panel h3{margin-bottom:8px;display:flex;align-items:center;gap:8px}
-.panel h3 .meta{margin-left:auto;font-family:"Source Sans 3";font-size:.85rem;color:var(--ink-3);font-weight:500}
+.panel h3 .meta{white-space:nowrap;margin-left:auto;font-family:"Source Sans 3";font-size:.85rem;color:var(--ink-3);font-weight:500}
 .muted{color:var(--ink-3)} .small{font-size:.85rem} .tiny{font-size:.76rem}
 .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .between{justify-content:space-between}
@@ -227,7 +227,7 @@ const PLAIN_CUTS=["Round Brilliant","Oval","Cushion","Princess","Radiant","Pear"
 const TAGS={Shallows:{fee:0,lean:"Mostly Common gems, small geodes"},Reef:{fee:2,lean:"Sea-touched gems: aquamarine, moonstone, opal"},Wreck:{fee:3,lean:"Higher relic chance; better relic condition"},Rich:{fee:3,lean:"+2 dredge attempts"},Ruins:{fee:4,lean:"Higher relic chance, bigger relics; better condition"},Vent:{fee:4,lean:"Fiery gems: ruby, garnet, topaz"},Deep:{fee:5,lean:"Better odds at Rare and Mythic Rare"},Trench:{fee:5,lean:"Bigger geodes (Melon, Boulder)"}};
 const TAG_ICON={Shallows:"≈",Reef:"✿",Wreck:"⚓",Rich:"✦",Ruins:"⌂",Vent:"♨",Deep:"▼",Trench:"⇊"};
 const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
-const RELIC_SIZES={Small:{space:4,crate:10},Medium:{space:6,crate:15},Large:{space:8,crate:20},Monumental:{space:12,crate:30}};
+const RELIC_SIZES={Small:{space:4,crate:10,standing:1,auction:4},Medium:{space:6,crate:15,standing:2,auction:5},Large:{space:8,crate:20,standing:3,auction:6},Monumental:{space:12,crate:30,standing:5,auction:7}};
 const OLD_RELIC_RANGES={Small:[100,200],Medium:[250,400],Large:[500,800],Monumental:[1000,1500]};
 const CONDITIONS={Damaged:{odds:50,mod:.75},"Slightly Worn":{odds:35,mod:1},Pristine:{odds:15,mod:1.5}};
 const BASES={
@@ -308,9 +308,9 @@ const FAC=Object.fromEntries(FACTIONS.map(f=>[f.key,f]));
 
 const DEFAULT_CONFIG={
  startCredits:1000, livesCap:3, lifeCost:2500,
- commissionCap:3, registration:20, referral:10, fee:25, urgentPct:50, urgentChance:15,
+ commissionCap:3, registration:20, referral:5, fee:25, urgentPct:50, urgentChance:15,
  relicBase:1, relicWreck:2, relicRuins:2, condShift:10, crackChance:10,
- levyPct:5, royaltyPct:10, permit:100, upkeep:50,
+ levyPct:5, royaltyPct:10, permit:100, upkeep:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5,
  spellLevelBase:1, precisionPerSpellLevel:2,
  gemPrices:{...DEFAULT_GEM_PRICES},
  perks:{bigger_hold:{t:3,max:5},better_rig:{t:5,max:3},node_sense:{t:8,max:3},efficient_engine:{t:2,max:4},sonar_sweep:{t:4,max:2},expanded_storage:{t:3,max:5}},
@@ -369,7 +369,7 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:5, meta:{savedAt:Date.now(),created:Date.now()},
+    version:7, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
@@ -385,6 +385,7 @@ function newGame(startDN){
   };
   S=s;
   s.partner=newPartner();
+  s.payroll=[finnRow(s.clock.day)];
   fillNodes();
   addLog("Finn opens the shop with 1,000 Cr of starting liquidity from Emma Frost's 883,000 Cr investment. Register with a faction to start getting commissions.");
   payPermit();
@@ -422,6 +423,14 @@ function migrate(s){
     for(const g in DEFAULT_GEM_PRICES)if(s.config.gemPrices[g]===OLD_GEM_PRICES[g])s.config.gemPrices[g]=DEFAULT_GEM_PRICES[g];
     s.version=5;
   }
+  if(s.version<6){s.events=s.events||[];s.config.duesPerLevel=s.config.duesPerLevel??5;s.version=6}
+  if(s.version<7){
+    if(s.config.referral===10)s.config.referral=5;
+    if(!s.payroll){const r=finnRow((s.partner&&s.partner.startDay)||s.clock.day);if(s.partner&&s.partner.draw!=null)r.amount=s.partner.draw;s.payroll=[r]}
+    if(s.partner){s.partner.cur.salaries=s.partner.cur.salaries||0;delete s.partner.draw}
+    s.survey=s.survey||{points:0,month:null,sold:0};s.auctions=s.auctions||[];
+    s.version=7;
+  }
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
     const L=s.lifetime,idByName=n=>(DB.relics.find(r=>r.name===n)||{}).id||n;
@@ -446,23 +455,49 @@ function payPermit(){ // Interplanar Trade Permit: due on opening day and every 
   S.permitDue=next;
   return `Renewed the Interplanar Trade Permit (${cr(c)}).`;
 }
-function newPartner(){return {invested:883000,cap:1059600,share:20,draw:300,paid:0,active:true,endedHow:null,
-  startDay:S.clock.day,cur:{month:monthOf(S.clock.day),income:0,costs:0},history:[]}}
+function newPartner(){return {invested:883000,cap:1059600,share:20,paid:0,active:true,endedHow:null,
+  startDay:S.clock.day,cur:{month:monthOf(S.clock.day),income:0,costs:0,salaries:0},history:[]}}
+/* ---------- SALARY LEDGER ---------- */
+const finnRow=start=>({id:"finn",name:"Finley Zora Anderson",role:"Owner / Lapidary",start,schedule:"monthly",amount:300,owed:0,wallet:true});
+const firstOfMonth=dn=>{const d=new Date(dn*DAY_MS);return Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),1)/DAY_MS)};
+const firstOfPrevMonth=dn=>{const d=new Date(dn*DAY_MS);return Math.floor(Date.UTC(d.getUTCFullYear(),d.getUTCMonth()-1,1)/DAY_MS)};
+const SCHEDULES={monthly:"The 1st of each month",weekly:"Every week",biweekly:"Every 2 weeks"};
+function payDue(row,dn){ // salary that falls due on day dn
+  if(dn<=row.start)return 0;
+  if(row.schedule==="weekly"||row.schedule==="biweekly"){const step=row.schedule==="weekly"?7:14;return (dn-row.start)%step===0?row.amount:0}
+  if(firstOfMonth(dn)!==dn)return 0;
+  const prev=firstOfPrevMonth(dn),from=Math.max(row.start,prev);   // pays the month just ended; first month prorated
+  return r2(row.amount*(dn-from)/(dn-prev));
+}
+function nextPayday(row){for(let d=S.clock.day+1;d<S.clock.day+400;d++)if(payDue(row,d)>0)return d;return null}
+function runPayroll(){ // nightly: salaries due today accrue as a cost; anything owed is paid as far as the balance allows
+  const notes=[],dn=S.clock.day;
+  for(const row of S.payroll||[]){const due=payDue(row,dn);if(due>0){row.owed=r2((row.owed||0)+due);if(S.partner)S.partner.cur.salaries=r2((S.partner.cur.salaries||0)+due);row.lastDue=dn}}
+  for(const row of S.payroll||[]){if(!(row.owed>0))continue;
+    const pay=r2(Math.min(row.owed,Math.max(0,S.credits)));if(pay<=0){notes.push(`Payroll short: ${cr(row.owed)} owed to ${row.name.split(" ")[0]}.`);continue}
+    money(-pay,`Salary — ${row.name} (${row.role})`,"none");row.owed=r2(row.owed-pay);
+    if(row.wallet){S.wallet=r2(S.wallet+pay);walletLog(pay,`Salary from Finn's Facets & Finds`)}
+    ev("salary",{name:row.name,paid:pay,owed:row.owed});
+    if(row.owed>0)notes.push(`Paid ${row.name.split(" ")[0]} ${cr(pay)}; ${cr(row.owed)} still owed.`)}
+  return notes;
+}
+function salariesThisMonth(){ // accrued so far + what falls due through the next 1st (paid in arrears, counted to this month)
+  let t=(S.partner&&S.partner.cur.salaries)||0;const nxt=firstOfMonth(S.clock.day)+40,end=firstOfMonth(nxt);
+  for(const row of S.payroll||[])for(let d=S.clock.day+1;d<=end;d++)t+=payDue(row,d);
+  return r2(t);
+}
 const P_=()=>S.partner;
 const owedLeft=()=>Math.max(0,r2(P_().cap-P_().paid));
 function closeMonth(label){ // runs on the 1st, for the month that just ended
-  const p=P_(),m=p.cur,notes=[];
-  let draw=Math.min(p.draw,Math.max(0,S.credits));
-  if(draw>0){money(-draw,`Owner's draw — ${label}`,"none");S.wallet=r2(S.wallet+draw);walletLog(draw,`Owner's draw — ${label}`)}
-  if(draw<p.draw)notes.push(`The business could only cover ${cr(draw)} of the ${cr(p.draw)} owner's draw.`);
-  const profit=r2(m.income-m.costs-p.draw);
+  const p=P_(),m=p.cur,notes=[],sal=r2(m.salaries||0);
+  const profit=r2(m.income-m.costs-sal);
   let emma=0;
   if(p.active&&profit>0){emma=r2(Math.min(profit*p.share/100,owedLeft()));
     money(-emma,`Emma Frost — ${p.share}% profit distribution, ${label}`,"none");p.paid=r2(p.paid+emma)}
-  p.history.unshift({month:label,income:r2(m.income),costs:r2(m.costs),draw,profit,emma,paidToDate:p.paid});
+  p.history.unshift({month:label,income:r2(m.income),costs:r2(m.costs),salaries:sal,profit,emma,paidToDate:p.paid});
   notes.push(p.active?(profit>0?`${label} closed: ${cr(profit)} distributable profit, ${cr(emma)} to Emma.`:`${label} closed with no distributable profit — nothing owed to Emma.`):`${label} closed: ${cr(profit)} distributable profit.`);
   if(p.active&&p.paid>=p.cap-0.005){p.active=false;p.endedHow="cap";notes.push("Emma's distributions reached the cap — the partnership is over. Finn owns Finn's Facets & Finds outright!");toast("Finn owns everything outright!")}
-  p.cur={month:monthOf(S.clock.day),income:0,costs:0};
+  p.cur={month:monthOf(S.clock.day),income:0,costs:0,salaries:0};
   return notes;
 }
 function buyout(){
@@ -472,7 +507,7 @@ function buyout(){
   money(-price,"Buyout — Emma Frost's share",'none');p.paid=r2(p.paid+price);p.active=false;p.endedHow="buyout";
   addLog(`Finn bought Emma out for ${cr(price)}. Finn's Facets & Finds is all hers.`);toast("Bought out! Finn owns everything outright.");commit();
 }
-function walletLog(amt,text){S.wledger=S.wledger||[];S.wledger.unshift({at:stamp(),text,amt:r2(amt),bal:S.wallet});if(S.wledger.length>400)S.wledger.length=400}
+function walletLog(amt,text){S.wledger=S.wledger||[];S.wledger.unshift({at:stamp(),day:S.clock.day,text,amt:r2(amt),bal:S.wallet});trimLogs()}
 function walletSpend(){
   const t=prompt("What did Finn spend her own money on?");if(!t)return;
   const v=+prompt(`How much? (wallet: ${cr(S.wallet)})`);if(!(v>0))return;
@@ -526,17 +561,26 @@ const tripTime=n=>30+15*n.tags.length;
    LOG / LEDGER / CLOCK
    ================================================================ */
 function stamp(){return `${fmtShort(S.clock.day)} ${fmtTime(S.clock.min)}`}
-function addLog(text){S.log.unshift({at:stamp(),text});if(S.log.length>400)S.log.length=400}
+const KEEP_DAYS=731; // about 24 months of history
+function addLog(text){S.log.unshift({at:stamp(),day:S.clock.day,text});trimLogs()}
+function ev(type,data){S.events=S.events||[];S.events.unshift({day:S.clock.day,min:S.clock.min,type,...data})}
+function trimLogs(){
+  const cut=S.clock.day-KEEP_DAYS,keep=l=>l.day==null||l.day>=cut;
+  for(const k of ["log","ledger","wledger","events"]){if(!S[k])continue;
+    if(S[k].some(l=>l.day!=null&&l.day<cut))S[k]=S[k].filter(keep);
+    const undated=S[k].filter(l=>l.day==null).length;if(undated>600){let n=0;S[k]=S[k].filter(l=>l.day!=null||++n<=600)}
+    if(S[k].length>20000)S[k].length=20000}
+}
 function money(amount,text,cat){S.credits=r2(S.credits+amount);
   if(S.partner&&cat!=="none"){if(amount>=0)S.partner.cur.income=r2(S.partner.cur.income+amount);else S.partner.cur.costs=r2(S.partner.cur.costs-amount)}
-  S.ledger.unshift({at:stamp(),text,amt:r2(amount),bal:S.credits});if(S.ledger.length>600)S.ledger.length=600}
+  S.ledger.unshift({at:stamp(),day:S.clock.day,text,amt:r2(amount),bal:S.credits,cat:cat==="none"?"none":amount>=0?"income":"cost"});trimLogs()}
 function canPay(a){return S.credits+1e-9>=a}
 function pay(a,text){if(!canPay(a)){toast(`Not enough Credits (need ${cr(a)})`);return false}money(-a,text);return true}
 function spendTime(base){const m=isLate()?Math.ceil(base*1.25):base;S.clock.min+=m;return m}
 function gainXP(n,why){
   if(!n)return;S.xp+=n;
   let msg=`+${n} XP (${why})`;
-  while(S.xp>=xpToReach(S.level+1)){S.xp-=xpToReach(S.level+1);S.level++;S.statPoints++;msg+=` — Level ${S.level}! +1 stat point`;}
+  while(S.xp>=xpToReach(S.level+1)){S.xp-=xpToReach(S.level+1);S.level++;S.statPoints++;msg+=` — Level ${S.level}! +1 stat point`;ev("level",{level:S.level})}
   addLog(msg);
 }
 let toastT=null;
@@ -572,11 +616,11 @@ function sail(id){
   const n=nodeById(id);if(!n)return;
   if(S.location===id)return;
   const c=tripCost(n);
-  act(tripTime(n),()=>{if(!pay(c,`Metered Mana — trawler trip`))return false;S.location=id;S.pos=null;},`Sailed to a Dredge Node (${cr(c)})`);
+  act(tripTime(n),()=>{if(!pay(c,`Metered Mana — trawler trip`))return false;S.location=id;S.pos=null;ev("trip",{cost:c,tags:revealed(n)})},`Sailed to a Dredge Node (${cr(c)})`);
 }
 function returnHome(){
   if(atHome())return;
-  act(30,()=>{S.location="home";S.pos=null;unload();},"Returned home and unloaded");
+  act(30,()=>{S.location="home";S.pos=null;const u=unload();ev("home",u)},"Returned home and unloaded");
 }
 function unload(){
   const free=storageCap()-used(S.storage);let moved=0,left=[];
@@ -584,6 +628,14 @@ function unload(){
   for(const it of S.hold){if(itemSpace(it)<=room){S.storage.push(it);room-=itemSpace(it);moved++}else left.push(it)}
   S.hold=left;
   if(left.length)addLog(`Home storage is full — ${left.length} item(s) stay in the trawler hold.`);
+  return {moved,left:left.length};
+}
+function unloadNow(){
+  if(!atHome()||!S.hold.length)return;
+  const u=unload();
+  if(u.moved)addLog(`Unloaded ${u.moved} item${u.moved>1?"s":""} from the hold into the Storage Room.`);
+  toast(u.moved?`Unloaded ${u.moved} item${u.moved>1?"s":""}${u.left?` — ${u.left} still won't fit`:""}.`:"Still no room in the Storage Room.");
+  commit();
 }
 function rollDredge(n){
   const T=n.tags,c=cfg();
@@ -609,7 +661,8 @@ function dredge(){
     const it=rollDredge(n);
     const what=it.kind==="relic"?`a ${it.size} relic — ${it.name} (${it.condition})`:`a ${it.size} geode`;
     if(it.kind==="relic"){gainXP(5,"found a relic");noteFound(S.lifetime,it.relicId,it.condition)}
-    if(used(S.hold)+itemSpace(it)>holdCap()){addLog(`Hauled up ${what}, but it won't fit in the hold. Back it goes.`);toast(`Hold full — ${what} went back over the side.`)}
+    const fits=used(S.hold)+itemSpace(it)<=holdCap();ev("find",{what,kept:fits,relic:it.kind==="relic"});
+    if(!fits){addLog(`Hauled up ${what}, but it won't fit in the hold. Back it goes.`);toast(`Hold full — ${what} went back over the side.`)}
     else{S.hold.push(it);addLog(`Hauled up ${what}.`);toast(`Hauled up ${what}!`)}
     if(n.left===0){S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;addLog("The Dredge Node fades. A new one will appear tomorrow.")}
   },"Dredge attempt");
@@ -644,7 +697,7 @@ function chisel(id){
     S.storage.splice(i,1);
     const n=rint(1,GEODES[g.size].max),got=[];
     for(let k=0;k<n;k++){const gem=rollGem(g.tags||[]);S.gems.push(gem);got.push(`${gem.quality} ${gem.type}`)}
-    toast(`Inside: ${got.join(", ")}`);addLog(`Chiseled a ${g.size} geode: ${got.join(", ")}.`);
+    toast(`Inside: ${got.join(", ")}`);addLog(`Chiseled a ${g.size} geode: ${got.join(", ")}.`);ev("chisel",{size:g.size,got});
   },"Chiseled a geode");
 }
 function canCutSpell(sp){return sp.level<=maxSpellLevel()&&S.patterns[sp.school]}
@@ -652,7 +705,7 @@ function cutPlain(gemId,cut,quiet){
   const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return false;
   if(!atHome()){toast("The faceting wheel is at home.");return false}
   g.state="plain";g.cut=cut;spendTime(60);gainXP(2,"plain cut");
-  addLog(`Cut a ${g.quality} ${g.type} — ${cut} (plain).`);
+  addLog(`Cut a ${g.quality} ${g.type} — ${cut} (plain).`);ev("cut",{text:`${g.quality} ${g.type}, ${cut} cut`});
   if(!quiet)commit();return true;
 }
 function cutAccents(gemId,quiet){ // a plain-cut action that yields 4 small accent stones
@@ -661,7 +714,7 @@ function cutAccents(gemId,quiet){ // a plain-cut action that yields 4 small acce
   S.gems=S.gems.filter(x=>x!==g);const made=[];
   for(let i=0;i<4;i++){const a={id:nid("acc"),type:g.type,quality:g.quality,state:"accent"};S.gems.push(a);made.push(a)}
   spendTime(60);gainXP(2,"plain cut");
-  addLog(`Cut a ${g.quality} ${g.type} into 4 accent stones (${cr(accentValue(g.type,g.quality))} each).`);
+  addLog(`Cut a ${g.quality} ${g.type} into 4 accent stones (${cr(accentValue(g.type,g.quality))} each).`);ev("cut",{text:`${g.quality} ${g.type} split into 4 accents`});
   if(!quiet)commit();return made;
 }
 function cutSpell(gemId,spellName,quiet){
@@ -674,6 +727,7 @@ function cutSpell(gemId,spellName,quiet){
   if(!pay(mana,`Metered Mana — ${sp.name} cut`))return false;
   g.state="spell";g.spell={name:sp.name,level:sp.level,school:sp.school};S.lifetime.cut[sp.name]=(S.lifetime.cut[sp.name]||0)+1;
   const m=spendTime(60+30*sp.level);gainXP(3+sp.level,"spell cut");
+  ev("cut",{text:`${g.quality} ${g.type} cut for ${sp.name} (${sp.level?ordinal(sp.level)+"-level":"cantrip"} ${sp.school})`});
   addLog(`Spell-cut a ${g.quality} ${g.type} for ${sp.name} — ${SCHOOL_SHAPE[sp.school]}, ${sp.level?facets(sp.level)+" facets":"cabochon"} (${fmtDur(m)}).`);
   if(!quiet)commit();return true;
 }
@@ -906,9 +960,10 @@ function accept(oid){
   const o=S.offers.splice(i,1)[0];
   o.stage="filling";o.accepted=S.clock.day;
   if(o.urgent)o.deadline=S.clock.day+o.urgentDays;
-  S.orders.push(o);addLog(`Accepted: ${o.title} — ${FAC[o.faction].name} on behalf of ${o.who}.`);commit();
+  S.orders.push(o);addLog(`Accepted: ${o.title} — ${FAC[o.faction].name} on behalf of ${o.who}.`);ev("accept",{...evO(o),deadline:o.deadline});commit();
 }
-function decline(oid){S.offers=S.offers.filter(o=>o.id!==oid);addLog("Let a commission offer go.");commit()}
+const evO=o=>({title:o.title,faction:o.faction,who:o.who,quote:o.quote,urgent:o.urgent});
+function decline(oid){const o=S.offers.find(x=>x.id===oid);S.offers=S.offers.filter(x=>x.id!==oid);if(o)ev("pass",evO(o));addLog(o?`Passed on: ${o.title}.`:"Let a commission offer go.");commit()}
 function release(o){
   for(const s of o.slots){
     const ids=s.kind==="accent"?(s.fill||[]):[s.fill];
@@ -919,7 +974,7 @@ function abandon(oid){
   const o=findOrder(oid);if(!o)return;
   if(o.stage!=="filling"){toast("It's already assembled.");return}
   if(!confirm("Cancel this commission? Reserved gems and parts go back to inventory. No pay, no RP."))return;
-  release(o);S.orders=S.orders.filter(x=>x!==o);addLog(`Cancelled: ${o.title}.`);commit();
+  release(o);S.orders=S.orders.filter(x=>x!==o);addLog(`Cancelled: ${o.title}.`);ev("cancel",evO(o));commit();
 }
 function startBath(oid,idx){
   const o=findOrder(oid),s=o.slots[idx];if(!atHome()){toast("The Manasonic Bath is at home.");return}
@@ -960,13 +1015,14 @@ function sendOrder(oid){
     gainXP(5*rp,"completed commission");
     S.orders=S.orders.filter(x=>x!==o);
     S.done.unshift({id:o.id,title:o.title,who:o.who,faction:o.faction,day:S.clock.day,total:p.total,net:p.net,rp,urgent:o.urgent,missed:!!o.missed});
+    ev("deliver",{...evO(o),total:p.total,net:p.net,rp,missed:!!o.missed});
     if(S.done.length>200)S.done.length=200;
     toast(`Delivered! ${cr(p.net)} after the referral and levy, +${rp} RP.`);
   },"Sent the parcel through the sending circle");
 }
 function addRP(key,rp){
   const f=S.factions[key];f.rp+=rp;
-  while(f.rp>=rpToReach(f.level+1)){f.rp-=rpToReach(f.level+1);f.level++;addLog(`Reputation with ${FAC[key].name} rose to Level ${f.level}.`)}
+  while(f.rp>=rpToReach(f.level+1)){f.rp-=rpToReach(f.level+1);f.level++;addLog(`Reputation with ${FAC[key].name} rose to Level ${f.level}.`);ev("rep",{faction:key,level:f.level})}
 }
 
 /* ================================================================
@@ -980,14 +1036,20 @@ function socketGem(rid,i,gid){
   if(s.gem){const g=S.gems.find(x=>x.id===s.gem);if(g)delete g.reserved;s.gem=null}
   if(gid){const g=S.gems.find(x=>x.id===gid);if(g){g.reserved="relic:"+rid;s.gem=g.id}}
   const was=r.stage;r.stage=r.sockets.every(x=>x.gem)?"active":"dormant";
-  if(was!=="active"&&r.stage==="active"){addLog(`${r.name} wakes up! Every socket is filled.`);toast(`${r.name} is active!`)}
+  if(was!=="active"&&r.stage==="active"){addLog(`${r.name} wakes up! Every socket is filled.`);toast(`${r.name} is active!`);ev("activate",{name:r.name})}
   commit();
 }
-function relicPayout(r){
+function relicPayout(r){ // Appraised Value, plus what the Survey would pay today
   const gv=r.sockets.reduce((a,s)=>{const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];return a+(g?gemValue(g.type,g.quality):0)},0);
-  const gross=r2((r.base+gv)*CONDITIONS[r.condition].mod),royalty=r2(gross*cfg().royaltyPct/100);
-  return {gems:gv,gross,royalty,total:r2(gross-royalty)};
+  const av=r2((r.base+gv)*CONDITIONS[r.condition].mod),bonus=r2(av*surveyBonusPct()/100),gross=r2(av+bonus),royalty=r2(gross*cfg().royaltyPct/100);
+  return {gems:gv,av,bonus,gross,royalty,total:r2(gross-royalty)};
 }
+const SV=()=>{S.survey=S.survey||{points:0,month:null,sold:0};return S.survey};
+const surveyLevel=()=>Math.floor(SV().points/5);
+const surveyBonusPct=()=>cfg().surveyBonusPct*surveyLevel();
+const surveyLimit=()=>1+surveyLevel();
+const surveySoldThisMonth=()=>SV().month===monthOf(S.clock.day)?SV().sold:0;
+const expectedBidPct=size=>50+RELIC_SIZES[size].auction*0.7*15;
 function packRelic(rid){
   const r=relicById(rid);if(!r||r.stage!=="active"||!atHome())return;
   const c=RELIC_SIZES[r.size].crate;
@@ -995,23 +1057,57 @@ function packRelic(rid){
     r.frozen={};for(const s of r.sockets){const g=S.gems.find(x=>x.id===s.gem);r.frozen[s.gem]=deep(g);S.gems=S.gems.filter(x=>x.id!==s.gem)}
     r.stage="packed"},`Crated ${r.name} in straw and velvet, logo burned into the lid`);
 }
+function relicSoldBook(r,net,via,gross){
+  S.lifetime.sold[r.relicId]=(S.lifetime.sold[r.relicId]||0)+1;S.lifetime.earned[r.relicId]=r2((S.lifetime.earned[r.relicId]||0)+net);
+  S.relics.unshift({id:r.relicId,name:r.name,size:r.size,condition:r.condition,day:S.clock.day,total:net,gross,via});
+}
+function consignRelic(rid){
+  const r=relicById(rid);if(!r||r.stage!=="packed")return;
+  const p=relicPayout(r),len=RELIC_SIZES[r.size].auction;
+  if(!confirm(`Consign ${r.name} to the Registry Salon? Bidding opens at ${cr(p.av*.5)} (50% of its ${cr(p.av)} Appraised Value) and runs ${len} days. Expected final bid is around ${Math.round(expectedBidPct(r.size))}%, before the 5% house fee and the Salvage Royalty.`))return;
+  act(5,()=>{
+    S.auctions=S.auctions||[];
+    S.auctions.push({id:r.id,relicId:r.relicId,name:r.name,size:r.size,condition:r.condition,sockets:r.sockets.length,av:p.av,bid:r2(p.av*.5),daysLeft:len,length:len,started:S.clock.day,bids:[]});
+    S.storage=S.storage.filter(x=>x!==r);ev("consign",{name:r.name,av:p.av,opening:r2(p.av*.5),days:len});
+    toast(`${r.name} is up at the Salon — bidding opens at ${cr(p.av*.5)}.`)},"Sent a relic crate through the floor circle to the Registry Salon");
+}
+function runAuctions(){ // nightly bids; a closed auction sells at the final bid less the house fee and Salvage Royalty
+  const notes=[];
+  for(const a of (S.auctions||[]).slice()){
+    if(Math.random()<.7){const inc=r2(a.av*(10+Math.random()*10)/100);a.bid=r2(a.bid+inc);a.bids.push({day:S.clock.day,amount:a.bid,inc});ev("bid",{name:a.name,bid:a.bid,inc})}
+    a.daysLeft--;
+    if(a.daysLeft<=0){
+      const fee=r2(a.bid*cfg().salonFeePct/100),royalty=r2(a.bid*cfg().royaltyPct/100),net=r2(a.bid-fee-royalty);
+      money(a.bid,`Registry Salon — ${a.name} sold at auction`);money(-fee,`Registry Salon house fee (${cfg().salonFeePct}%) — ${a.name}`);money(-royalty,`Salvage Royalty to Krakoa (${cfg().royaltyPct}%) — ${a.name}`);
+      gainXP(10*a.sockets,"sold an activated relic");
+      relicSoldBook(a,net,"Salon",a.bid);ev("relicSold",{name:a.name,size:a.size,condition:a.condition,gross:a.bid,net,via:"Salon",pct:Math.round(a.bid/a.av*100)});
+      S.auctions=S.auctions.filter(x=>x!==a);
+      notes.push(`The Salon auction for ${a.name} closed at ${cr(a.bid)} (${Math.round(a.bid/a.av*100)}% of Appraised Value) — ${cr(net)} after fees.`);
+    }
+  }
+  return notes;
+}
 function sendRelic(rid){
   const r=relicById(rid);if(!r||r.stage!=="packed")return;
-  act(5,()=>{const p=relicPayout(r);money(p.gross,`Joint Planar Archaeological Survey — ${r.name}`);money(-p.royalty,`Salvage Royalty to Krakoa (${cfg().royaltyPct}%) — ${r.name}`);
+  if(surveySoldThisMonth()>=surveyLimit()){toast(`The Survey takes ${surveyLimit()} relic${surveyLimit()>1?"s":""} a month at Standing ${surveyLevel()} — try the Salon.`);return}
+  act(5,()=>{const p=relicPayout(r);money(p.gross,`Joint Planar Archaeological Survey — ${r.name}${p.bonus?` (incl. ${cr(p.bonus)} Standing bonus)`:""}`);money(-p.royalty,`Salvage Royalty to Krakoa (${cfg().royaltyPct}%) — ${r.name}`);
+    const sv=SV(),lv0=surveyLevel();if(sv.month!==monthOf(S.clock.day)){sv.month=monthOf(S.clock.day);sv.sold=0}sv.sold++;sv.points+=RELIC_SIZES[r.size].standing;
+    if(surveyLevel()>lv0){addLog(`Survey Standing rose to Level ${surveyLevel()} (+${surveyBonusPct()}% on Survey sales, ${surveyLimit()} relics a month).`);ev("standing",{level:surveyLevel()})}
     gainXP(10*r.sockets.length,"sold an activated relic");
     S.storage=S.storage.filter(x=>x!==r);
-    S.lifetime.sold[r.relicId]=(S.lifetime.sold[r.relicId]||0)+1;S.lifetime.earned[r.relicId]=r2((S.lifetime.earned[r.relicId]||0)+p.total);
-    S.relics.unshift({id:r.relicId,name:r.name,size:r.size,condition:r.condition,day:S.clock.day,total:p.total});
+    relicSoldBook(r,p.total,"Survey",p.gross);
+    ev("relicSold",{name:r.name,size:r.size,condition:r.condition,gross:p.gross,net:p.total,via:"Survey"});
     toast(`The Survey paid ${cr(p.total)} for ${r.name}.`)},"Sent a relic crate through the floor circle to the Survey");
 }
 
 /* ================================================================
    FACTIONS / PERKS / LIVES
    ================================================================ */
+const duesFor=key=>cfg().registration+cfg().duesPerLevel*S.factions[key].level; // 20 Cr + 5 Cr per Reputation Level
 function register(key){
   const f=S.factions[key];
   if(f.registered){f.autoRenew=!f.autoRenew;addLog(f.autoRenew?`Will keep paying ${FAC[key].name} dues.`:`Stopped paying ${FAC[key].name} dues — registration lapses at month's end.`);commit();return}
-  if(!pay(cfg().registration,`${FAC[key].name} registration (${monthName(S.clock.day)})`))return;
+  if(!pay(duesFor(key),`${FAC[key].name} registration (${monthName(S.clock.day)}, Level ${S.factions[key].level})`))return;
   f.registered=true;f.autoRenew=true;addLog(`Registered with ${FAC[key].name}.`);commit();
 }
 function commissionChance(key){return 10+5*S.factions[key].level}
@@ -1057,9 +1153,11 @@ function overnight(){
   // baths
   for(const o of S.orders)for(const s of o.slots)if(s.kind==="bath"&&s.bath==="soaking"){s.bath="soaked";notes.push(`Bath finished for ${s.req.spell.name}.`)}
   // expiries & deadlines
-  const before=S.offers.length;S.offers=S.offers.filter(o=>o.expires>=S.clock.day);
+  const before=S.offers.length;for(const o of S.offers)if(o.expires<S.clock.day)ev("expire",evO(o));S.offers=S.offers.filter(o=>o.expires>=S.clock.day);
   if(before-S.offers.length)notes.push(`${before-S.offers.length} offer(s) expired.`);
-  for(const o of S.orders)if(o.urgent&&!o.missed&&S.clock.day>o.deadline){o.missed=true;notes.push(`Missed the deadline on ${o.title} — no urgency fee, no RP.`)}
+  for(const o of S.orders)if(o.urgent&&!o.missed&&S.clock.day>o.deadline){o.missed=true;ev("missed",evO(o));notes.push(`Missed the deadline on ${o.title} — no urgency fee, no RP.`)}
+  // payroll (a 1st-of-month payday belongs to the month just ended, so it runs before the books close)
+  notes.push(...runPayroll());
   // new month
   const nm=monthOf(S.clock.day);
   if(nm!==oldMonth){
@@ -1067,18 +1165,19 @@ function overnight(){
     notes.push(...closeMonth(monthName(S.clock.day-1)));
     if(S.lives<livesCap()){S.lives++;notes.push("Monthly life granted.")}else notes.push("Monthly life lost — already at the cap.");
     for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
-      if(st.autoRenew&&canPay(cfg().registration)){money(-cfg().registration,`${f.name} registration (${monthName(S.clock.day)})`)}
+      if(st.autoRenew&&canPay(duesFor(f.key))){money(-duesFor(f.key),`${f.name} registration (${monthName(S.clock.day)}, Level ${st.level})`)}
       else{st.registered=false;st.autoRenew=false;notes.push(`Registration with ${f.name} lapsed.`)}}
     const up=Math.min(cfg().upkeep,Math.max(0,S.credits));
     if(up>0)money(-up,`Boat upkeep — The Lucky Landshark (${monthName(S.clock.day)})`);
     if(up<cfg().upkeep)notes.push(`The business could only cover ${cr(up)} of the ${cr(cfg().upkeep)} boat upkeep.`);
   }
   if(S.permitDue!=null&&S.clock.day>=S.permitDue)notes.push(payPermit());
+  notes.push(...runAuctions());
   // commission rolls
   let got=0;
   for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
     const ch=commissionChance(f.key);let n=Math.floor(ch/100);if(Math.random()*100<ch%100)n++;
-    for(let i=0;i<n;i++){S.offers.push(genOrder(f));got++}}
+    for(let i=0;i<n;i++){const o=genOrder(f);S.offers.push(o);ev("offer",{...evO(o),expires:o.expires});got++}}
   if(got)notes.push(`${got} new commission offer${got>1?"s":""} arrived.`);
   // nodes
   const had=S.nodes.length;fillNodes();if(S.nodes.length>had)notes.push(`${S.nodes.length-had} new Dredge Node${S.nodes.length-had>1?"s":""} glow on the water.`);
@@ -1292,7 +1391,7 @@ VIEWS.sea=()=>{
     </div>
     <div class="panel"><h3><i>The Lucky Landshark</i> — hold <span class="meta">${used(S.hold)}/${holdCap()}</span></h3>
       <div class="bar brass"><i style="width:${Math.min(100,used(S.hold)/holdCap()*100)}%"></i></div>
-      ${S.hold.length?`<div class="tscroll"><table><tr><th>Item</th><th>Space</th><th></th><th></th></tr>${S.hold.map(i=>itemRow(i,"hold")).join("")}</table></div>`:`<div class="empty">Empty hold.</div>`}
+      ${S.hold.length?`${atHome()?`<div class="row" style="margin:8px 0"><button class="btn sm" data-act="unload">Unload into storage</button><span class="tiny muted">Storage ${used(S.storage)}/${storageCap()}</span></div>`:""}<div class="tscroll"><table><tr><th>Item</th><th>Space</th><th></th><th></th></tr>${S.hold.map(i=>itemRow(i,"hold")).join("")}</table></div>`:`<div class="empty">Empty hold.</div>`}
     </div>
    </div></div>`;
 };
@@ -1474,13 +1573,27 @@ VIEWS.relics=()=>{
     return `<div class="panel"><h3>${esc(r.name)} <span class="meta">${r.size} · ${r.condition} ×${CONDITIONS[r.condition].mod}</span></h3>
       <p class="small muted">${esc(r.description||"")}</p>
       <div class="sockets">${socks}</div>
-      <div class="row between"><div><div class="muted tiny">(${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod} = ${cr(p.gross)}, less ${cr(p.royalty)} Salvage Royalty</div><div class="price">${cr(p.total)}</div><div class="muted tiny">${10*r.sockets.length} XP on sale</div></div>
-      <div class="row">${r.stage==="dormant"?`<span class="tag">Dormant — ${r.sockets.filter(s=>!s.gem).length} socket(s) empty</span>`:r.stage==="active"?`<span class="tag ok">Active</span><button class="btn brass" data-act="packrelic" data-id="${r.id}" ${atHome()?"":"disabled"}>Crate it (30 min, ${cr(RELIC_SIZES[r.size].crate)})</button>`:`<button class="btn end" data-act="sendrelic" data-id="${r.id}">Send to the Survey (5 min)</button>`}</div></div></div>`;
+      <div class="row between"><div><div class="muted tiny">Appraised Value: (${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod}</div><div class="price">${cr(p.av)}</div>
+        <div class="muted tiny">Survey pays ${cr(p.gross)}${p.bonus?` (incl. +${surveyBonusPct()}% Standing)`:""} → ${cr(p.total)} after the royalty · Salon opens at ${cr(p.av*.5)}, ${RELIC_SIZES[r.size].auction} days, expect ~${Math.round(expectedBidPct(r.size))}% · ${10*r.sockets.length} XP on sale</div></div>
+      <div class="row">${r.stage==="dormant"?`<span class="tag">Dormant — ${r.sockets.filter(s=>!s.gem).length} socket(s) empty</span>`:r.stage==="active"?`<span class="tag ok">Active</span><button class="btn brass" data-act="packrelic" data-id="${r.id}" ${atHome()?"":"disabled"}>Crate it (30 min, ${cr(RELIC_SIZES[r.size].crate)})</button>`
+        :`<button class="btn end" data-act="sendrelic" data-id="${r.id}" ${surveySoldThisMonth()>=surveyLimit()?`disabled title="Monthly Survey limit reached"`:""}>Sell to the Survey (5 min)</button><button class="btn brass" data-act="consign" data-id="${r.id}">Consign to the Salon (5 min)</button>`}</div></div></div>`;
   }).join("");
+  const sv=SV(),lv=surveyLevel(),into=sv.points%5,auc=S.auctions||[];
+  const standing=`<div class="grid g2" style="margin-bottom:14px">
+   <div class="panel"><h3>Joint Planar Archaeological Survey <span class="meta">Standing Level ${lv}</span></h3>
+    <div class="row between small"><span>${into}/5 points to Level ${lv+1}</span><span class="muted">${sv.points} total</span></div>
+    <div class="bar" style="margin:6px 0"><i style="width:${into/5*100}%"></i></div>
+    <p class="small">Bonus <b>+${surveyBonusPct()}%</b> of Appraised Value · this month <b>${surveySoldThisMonth()}/${surveyLimit()}</b> relics</p>
+    <p class="tiny muted">Pays right away. Standing points per sale: Small 1, Medium 2, Large 3, Monumental 5; every 5 points is a Level (+${cfg().surveyBonusPct}% and +1 relic a month).</p></div>
+   <div class="panel"><h3>Registry Salon of Distinguished Provenance <span class="meta">${auc.length} at auction</span></h3>
+    ${auc.length?`<table>${auc.map(a=>`<tr><td><b>${esc(a.name)}</b> <span class="muted small">${a.size}</span><div class="tiny muted">${a.bids.length} bid${a.bids.length===1?"":"s"} · Appraised ${cr(a.av)}</div></td><td><span class="price" style="font-size:1.15rem">${cr(a.bid)}</span><div class="tiny muted">${Math.round(a.bid/a.av*100)}% · ${a.daysLeft} day${a.daysLeft===1?"":"s"} left</div></td></tr>`).join("")}</table>`
+      :`<p class="empty">Nothing up for auction.</p>`}
+    <p class="tiny muted">Opens at 50% of Appraised Value; each night there's a 70% chance of a bid adding 10–20%. Closes after 4/5/6/7 days by size and sells at the final bid, less the ${cfg().salonFeePct}% house fee and the ${cfg().royaltyPct}% Salvage Royalty.</p></div></div>`;
   return `${dbBanner()}${inHold?`<div class="banner">${inHold} relic(s) still in the trawler hold — bring them home to work on them.</div>`:""}
-   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. The Survey pays for its base value plus the gems (base × Quality), times its condition; Krakoa takes a 10% Salvage Royalty.</p>
+   ${standing}
+   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. Appraised Value is its base plus the gems (base × Quality), times its condition.</p>
    ${rs.length?`<div class="grid">${cards}</div>`:`<div class="panel empty">No relics in storage. Wreck and Ruins nodes turn them up more often.</div>`}
-   ${S.relics.length?`<h2 style="margin:22px 0 10px">Sold to the Survey</h2><div class="panel"><table><tr><th>Date</th><th>Relic</th><th>Condition</th><th>Paid</th></tr>${S.relics.slice(0,30).map(x=>`<tr><td>${fmtShort(x.day)}</td><td>${esc(x.name)} <span class="muted small">${x.size}</span></td><td>${x.condition}</td><td>${cr(x.total)}</td></tr>`).join("")}</table></div>`:""}`;
+   ${S.relics.length?`<h2 style="margin:22px 0 10px">Relics sold</h2><div class="panel"><table><tr><th>Date</th><th>Relic</th><th>Condition</th><th>Sold via</th><th>Sale</th><th>Kept</th></tr>${S.relics.slice(0,30).map(x=>`<tr><td>${fmtShort(x.day)}</td><td>${esc(x.name)} <span class="muted small">${x.size}</span></td><td>${x.condition}</td><td>${x.via||"Survey"}</td><td>${x.gross?cr(x.gross):"—"}</td><td>${cr(x.total)}</td></tr>`).join("")}</table></div>`:""}`;
 };
 
 /* ---------- HALLMARK ---------- */
@@ -1506,14 +1619,15 @@ VIEWS.hallmark=()=>{
 };
 
 /* ---------- FACTIONS ---------- */
-VIEWS.factions=()=>`<p class="muted small">Registration is ${cr(cfg().registration)}/month per faction; only registered factions roll for commissions when you End Day (chance 10% + 5% per Reputation Level). Each faction takes a ${cfg().referral}% referral cut. Reputation never drops if you stop paying.</p>
+VIEWS.factions=()=>`<p class="muted small">Dues are ${cr(cfg().registration)} + ${cr(cfg().duesPerLevel)} per Reputation Level each month, charged on the 1st at her level that day; only registered factions roll for commissions when you End Day (chance 10% + 5% per Reputation Level). Each faction takes a ${cfg().referral}% referral cut. Reputation never drops if you stop paying.</p>
  <div class="cards">${FACTIONS.map(f=>{const st=S.factions[f.key],need=rpToReach(st.level+1),ch=commissionChance(f.key);
   return `<div class="panel"><h3>${esc(f.name)}</h3><div class="muted small">${esc(f.reps)}</div>
    <div class="row between" style="margin:8px 0 4px"><span>Reputation Level <b>${st.level}</b></span><span class="small muted">${st.rp}/${need} RP</span></div>
    <div class="bar"><i style="width:${st.rp/need*100}%"></i></div>
    <p class="small">Daily commission chance: <b>${ch}%</b>${ch>100?` (1 guaranteed + ${ch%100}% for a second)`:""}</p>
    <div class="row">${st.registered?`<span class="tag ok">Registered</span><button class="btn sm ghost" data-act="reg" data-k="${f.key}">${st.autoRenew?"Stop paying dues":"Resume dues"}</button>${st.autoRenew?"":`<span class="tiny muted">lapses at month's end</span>`}`
-     :`<button class="btn sm brass" data-act="reg" data-k="${f.key}">Register — ${cr(cfg().registration)}</button>`}</div></div>`}).join("")}</div>`;
+     :`<button class="btn sm brass" data-act="reg" data-k="${f.key}">Register — ${cr(duesFor(f.key))}</button>`}</div>
+   <p class="tiny muted" style="margin-top:6px">Dues at Level ${st.level}: ${cr(duesFor(f.key))}/month</p></div>`}).join("")}</div>`;
 
 /* ---------- FINN ---------- */
 VIEWS.finn=()=>{
@@ -1655,7 +1769,7 @@ function snapshotMD(){
   const unl=SCHOOLS.filter(x=>!S.patterns[x]);
   P(`- Can spell-cut up to ${ordinal(maxSpellLevel())} level${unl.length?`; patterns not learned: ${unl.join(", ")}`:"; all eight school patterns learned"}`);
   {const p=P_();P("");P(`## Partnership with Emma Frost`);
-   if(p.active){P(`Emma is a silent partner (883,000 Cr invested, ${p.share}% of distributable profit monthly). Distributed so far: ${cr(p.paid)} of the ${cr(p.cap)} cap (${(p.paid/p.cap*100).toFixed(1)}%); buyout today would cost ${cr(owedLeft())}. Owner's draw: ${cr(p.draw)}/month.`);
+   if(p.active){P(`Emma is a silent partner (883,000 Cr invested, ${p.share}% of distributable profit monthly). Distributed so far: ${cr(p.paid)} of the ${cr(p.cap)} cap (${(p.paid/p.cap*100).toFixed(1)}%); buyout today would cost ${cr(owedLeft())}. Salaries: ${(S.payroll||[]).map(r=>`${r.name} (${r.role}) ${cr(r.amount)} ${SCHEDULES[r.schedule].toLowerCase()}${r.owed>0?`, ${cr(r.owed)} owed`:""}`).join("; ")}.`);
      P(`This month so far: ${cr(p.cur.income)} income, ${cr(p.cur.costs)} business costs. Interplanar Trade Permit renews ${fmtShort(S.permitDue)}.`);
      if(p.history[0])P(`Last month (${p.history[0].month}): ${cr(p.history[0].profit)} distributable profit, ${cr(p.history[0].emma)} to Emma.`)}
    else P(p.endedHow==="buyout"?"Finn bought Emma out — she owns the business outright.":"Emma's distributions reached the cap — Finn owns the business outright.");}
@@ -1675,6 +1789,8 @@ function snapshotMD(){
   }
   if(S.offers.length){P("");P(`## Offers waiting (${S.offers.length})`);
     for(const o of S.offers)P(`- ${o.title} — ${FAC[o.faction].name} on behalf of ${o.who}${o.planes&&o.planes.length?` (${o.planes.join(", ")})`:""}, quoted ${cr(o.quote)}${o.urgent?", urgent":""}, expires ${fmtShort(o.expires)}`)}
+  P("");P(`## Relic selling`);P(`Survey Standing Level ${surveyLevel()} (+${surveyBonusPct()}% on Survey sales, ${surveySoldThisMonth()}/${surveyLimit()} sold this month).`);
+  for(const a of S.auctions||[])P(`- At the Registry Salon: ${a.name} (${a.size}), current bid ${cr(a.bid)} (${Math.round(a.bid/a.av*100)}% of its ${cr(a.av)} Appraised Value), ${a.daysLeft} day${a.daysLeft===1?"":"s"} left`);
   const relics=[...S.storage,...S.hold].filter(i=>i.kind==="relic");
   if(relics.length){P("");P(`## Relics on hand`);
     for(const r of relics){const filled=r.sockets.filter(k=>k.gem).length;
@@ -1702,8 +1818,22 @@ VIEWS.snapshot=()=>`<div class="panel"><h3>Snapshot <span class="meta">Markdown,
   <textarea id="snapText" readonly style="width:100%;min-height:60vh;font:13px/1.45 ui-monospace,Menlo,monospace;background:var(--pearl);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:10px">${esc(snapshotMD())}</textarea></div>`;
 
 /* ---------- BOOKS ---------- */
+function salaryView(){
+  const rows=S.payroll||[];
+  const inp=(r,f,type,val,w)=>`<input type="${type}" data-pay="${r.id}" data-f="${f}" value="${esc(val)}" style="width:${w}">`;
+  return `<div class="panel"><h3>Salary Ledger <span class="meta">${rows.length} on payroll</span></h3>
+   <p class="small muted">Salaries are a business cost before profit, so Emma's share only comes from what's left after paying people. Monthly pay goes out on the 1st for the month just ended (a first partial month is prorated); weekly and every-2-weeks pay counts from the start date. If the business is short, the rest is recorded as owed and paid automatically at the end of each day until it's cleared. Finn's pay lands in her wallet.</p>
+   <div class="tscroll"><table><tr><th>Name</th><th>Role</th><th>Start date</th><th>Pay schedule</th><th>Amount</th><th>Owed</th><th>Next payday</th><th></th></tr>
+   ${rows.map(r=>{const np=nextPayday(r);return `<tr><td>${inp(r,"name","text",r.name,"170px")}</td><td>${inp(r,"role","text",r.role,"130px")}</td>
+     <td>${inp(r,"start","date",isoOf(r.start),"140px")}${r.id==="finn"?`<div class="tiny muted">Shop opening</div>`:""}</td>
+     <td><select data-pay="${r.id}" data-f="schedule">${Object.entries(SCHEDULES).map(([k,l])=>`<option value="${k}" ${r.schedule===k?"selected":""}>${l}</option>`).join("")}</select></td>
+     <td>${inp(r,"amount","number",r.amount,"90px")}</td><td>${r.owed>0?`<span class="cr-minus">${cr(r.owed)}</span>`:"—"}</td>
+     <td class="small">${np?`${fmtShort(np)} · ${cr(payDue(r,np))}`:"—"}</td>
+     <td>${r.id==="finn"?"":`<button class="btn sm ghost" data-act="endhire" data-id="${r.id}">Remove</button>`}</td></tr>`}).join("")}</table></div>
+   <div class="row" style="margin-top:10px"><button class="btn sm" data-act="addhire">Add a hire</button><span class="tiny muted">Changes take effect from the next payday.</span></div></div>`;
+}
 function partnerView(){
-  const p=P_(),m=p.cur,proj=r2(m.income-m.costs-p.draw),projE=p.active&&proj>0?r2(Math.min(proj*p.share/100,owedLeft())):0;
+  const p=P_(),m=p.cur,salM=salariesThisMonth(),proj=r2(m.income-m.costs-salM),projE=p.active&&proj>0?r2(Math.min(proj*p.share/100,owedLeft())):0;
   const pct=Math.min(100,p.paid/p.cap*100);
   const done=!p.active;
   return `<div class="grid g2"><div class="grid">
@@ -1716,31 +1846,87 @@ function partnerView(){
     <hr class="rule"><dl class="kv"><dt>Invested</dt><dd>${cr(p.invested)} — lighthouse, cottage, dock, workshop, <i>The Lucky Landshark</i>, 1,000 Cr starting liquidity</dd>
      <dt>Profit share</dt><dd>${p.share}% of distributable profit, paid on the 1st</dd><dt>Buyout / cap</dt><dd>${cr(p.cap)} (120% of the investment), less distributions paid</dd>
      <dt>Running costs</dt><dd>Permit ${cr(cfg().permit)}/yr (next ${fmtShort(S.permitDue)}) · boat upkeep ${cr(cfg().upkeep)}/mo · levy ${cfg().levyPct}% of commissions · Salvage Royalty ${cfg().royaltyPct}% of relics</dd>
-     <dt>Owner's draw</dt><dd>${cr(p.draw)}/month <a href="#" class="small" data-act="setdraw">change</a></dd></dl></div>
+     <dt>Salaries</dt><dd>${(S.payroll||[]).map(r=>`${esc(r.name)} ${cr(r.amount)} ${r.schedule==="monthly"?"/month":r.schedule==="weekly"?"/week":"/2 weeks"}`).join(" · ")} <a href="#" class="small" data-ltab="salaries">Salary Ledger</a></dd></dl></div>
    </div><div class="grid">
    <div class="panel"><h3>This month <span class="meta">${monthName(S.clock.day)}, so far</span></h3>
     <table class="money"><tr><td>Income (commissions, Survey)</td><td class="cr-plus">${cr(m.income)}</td></tr>
      <tr><td>Business costs (dues, levy, royalty, permit, upkeep, trips, mana, parts, packing, referrals, perks)</td><td class="cr-minus">−${cr(m.costs)}</td></tr>
-     <tr><td>Owner's draw</td><td class="cr-minus">−${cr(p.draw)}</td></tr>
+     <tr><td>Salaries (this month, incl. payday on the 1st)</td><td class="cr-minus">−${cr(salM)}</td></tr>
      <tr><td><b>Distributable profit</b></td><td><b>${cr(proj)}</b></td></tr>
      <tr><td>Emma's ${p.share}% ${proj>0?"":"<span class='tiny muted'>(loss month — nothing owed)</span>"}</td><td>${cr(projE)}</td></tr></table>
-    <p class="tiny muted">Closes on the 1st: the draw moves to Finn's wallet, and Emma's share is paid from the business account.</p></div>
-   <div class="panel"><h3>Monthly distributions</h3>${p.history.length?`<div class="tscroll"><table><tr><th>Month</th><th>Income</th><th>Costs</th><th>Draw</th><th>Profit</th><th>Emma</th></tr>
-    ${p.history.map(h=>`<tr><td>${esc(h.month)}</td><td>${cr(h.income)}</td><td>${cr(h.costs)}</td><td>${cr(h.draw)}</td><td>${cr(h.profit)}</td><td><b>${cr(h.emma)}</b></td></tr>`).join("")}</table></div>`:`<div class="empty">No months closed yet.</div>`}</div>
+    <p class="tiny muted">Closes on the 1st after payroll: Finn's salary goes to her wallet, and Emma's share is paid from the business account.</p></div>
+   <div class="panel"><h3>Monthly distributions</h3>${p.history.length?`<div class="tscroll"><table><tr><th>Month</th><th>Income</th><th>Costs</th><th>Salaries</th><th>Profit</th><th>Emma</th></tr>
+    ${p.history.map(h=>`<tr><td>${esc(h.month)}</td><td>${cr(h.income)}</td><td>${cr(h.costs)}</td><td>${cr(h.salaries??h.draw??0)}</td><td>${cr(h.profit)}</td><td><b>${cr(h.emma)}</b></td></tr>`).join("")}</table></div>`:`<div class="empty">No months closed yet.</div>`}</div>
   </div></div>`;
 }
 
+const MONTH_KEY=dn=>isoOf(dn).slice(0,7);
+function monthPicker(tab,list){
+  const keys=[...new Set(list.filter(l=>l.day!=null).map(l=>MONTH_KEY(l.day)))].sort().reverse();
+  const hasOld=list.some(l=>l.day==null);
+  UI.lm=UI.lm||{};let cur=UI.lm[tab];
+  if(cur==null)cur=keys.includes(MONTH_KEY(S.clock.day))?MONTH_KEY(S.clock.day):(keys[0]||(hasOld?"earlier":"all"));
+  const opts=[...keys.map(k=>[k,fmtDate(dnOf(k+"-01"),{month:"long",year:"numeric"})]),...(hasOld?[["earlier","Earlier"]]:[]),["all","All"]];
+  if(!opts.some(o=>o[0]===cur))cur=opts[0][0];
+  const sel=cur==="all"?list:cur==="earlier"?list.filter(l=>l.day==null):list.filter(l=>l.day!=null&&MONTH_KEY(l.day)===cur);
+  return {sel,html:`<select data-lm="${tab}" aria-label="Month">${opts.map(([k,l])=>`<option value="${k}" ${k===cur?"selected":""}>${l}</option>`).join("")}</select>`,cur};
+}
+const moneyRow=l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`;
+function monthTotals(sel){const inc=sel.filter(l=>l.amt>0).reduce((a,l)=>a+l.amt,0),out=sel.filter(l=>l.amt<0).reduce((a,l)=>a+l.amt,0);
+  return `<span class="small"><span class="cr-plus">+${cr(inc)}</span> · <span class="cr-minus">${cr(out)}</span></span>`}
 VIEWS.ledger=()=>{
   const t=UI.ledgerTab;
-  const tb=`<div class="row" style="margin-bottom:10px">${[["partner","Partnership"],["money","Business"],["wallet","Finn's wallet"],["events","Journal"]].map(([k,l])=>`<button class="btn sm ${t===k?"":"ghost"}" data-ltab="${k}">${l}</button>`).join("")}</div>`;
+  const tb=`<div class="row" style="margin-bottom:10px">${[["partner","Partnership"],["salaries","Salary Ledger"],["money","Business"],["wallet","Finn's wallet"],["events","Journal"]].map(([k,l])=>`<button class="btn sm ${t===k?"":"ghost"}" data-ltab="${k}">${l}</button>`).join("")}</div>`;
   if(t==="partner")return tb+partnerView();
-  if(t==="wallet")return tb+`<div class="panel"><h3>Finn's wallet <span class="meta">${cr(S.wallet)}</span></h3>
-    <p class="small muted">Her own money: the owner's draw lands here on the 1st. Lives from Life &amp; Care come out of here.</p>
-    <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="wspend">Record personal spending</button><button class="btn sm ghost" data-act="wtobiz">Put money into the business</button></div>
-    <div class="log">${(S.wledger||[]).map(l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`).join("")||`<div class="empty">Nothing yet — the first draw arrives on the 1st.</div>`}</div></div>`;
-  return tb+`<div class="panel log">${t==="events"?(S.log.map(l=>`<div><span class="t">${l.at}</span>${esc(l.text)}</div>`).join("")||`<div class="empty">Nothing yet.</div>`)
-   :(S.ledger.map(l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`).join("")||`<div class="empty">No transactions yet.</div>`)}</div>`;
+  if(t==="salaries")return tb+salaryView();
+  if(t==="wallet"){const m=monthPicker("wallet",S.wledger||[]);
+    return tb+`<div class="panel"><h3>Finn's wallet <span class="meta">${cr(S.wallet)}</span></h3>
+    <p class="small muted">Her own money: her salary from the Salary Ledger lands here. Lives from Life &amp; Care come out of here.</p>
+    <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="wspend">Record personal spending</button><button class="btn sm ghost" data-act="wtobiz">Put money into the business</button><span class="spacer"></span>${m.html} ${monthTotals(m.sel)}</div>
+    <div class="log">${m.sel.map(moneyRow).join("")||`<div class="empty">Nothing in this month.</div>`}</div></div>`}
+  if(t==="money"){const m=monthPicker("money",S.ledger);
+    return tb+`<div class="panel"><div class="row between" style="margin-bottom:8px"><h3 style="margin:0">Business account <span class="meta">${cr(S.credits)}</span></h3><div class="row">${m.html} ${monthTotals(m.sel)}</div></div>
+    <div class="log">${m.sel.map(moneyRow).join("")||`<div class="empty">No transactions in this month.</div>`}</div></div>`}
+  const m=monthPicker("events",S.log);
+  return tb+`<div class="panel" style="margin-bottom:14px"><h3>Export a day</h3>
+    <p class="small muted">A Markdown summary of one day — commissions offered, accepted, passed, expired and delivered, dredging, cuts, relics, level-ups and money — followed by that day's full journal.</p>
+    <div class="row" style="align-items:flex-end"><label class="f">Day<input type="date" id="dayPick" value="${isoOf(S.clock.day)}"></label><button class="btn" data-act="dayexport">Download .md</button><button class="btn ghost" data-act="daycopy">Copy</button></div></div>
+   <div class="panel"><div class="row between" style="margin-bottom:8px"><h3 style="margin:0">Journal</h3>${m.html}</div>
+    <div class="log">${m.sel.map(l=>`<div><span class="t">${l.at}</span>${esc(l.text)}</div>`).join("")||`<div class="empty">Nothing in this month.</div>`}</div></div>`;
 };
+function dayMD(dn){
+  const E=(S.events||[]).filter(e=>e.day===dn).slice().reverse();
+  const J=S.log.filter(l=>l.day===dn).slice().reverse();
+  const M=S.ledger.filter(l=>l.day===dn).slice().reverse();
+  const W=(S.wledger||[]).filter(l=>l.day===dn).slice().reverse();
+  const legacy=!E.length&&!J.length?S.log.filter(l=>l.day==null&&l.at.startsWith(fmtShort(dn)+" ")).slice().reverse():[];
+  const L=[],P=x=>L.push(x),by=t=>E.filter(e=>e.type===t),fac=k=>FAC[k]?FAC[k].name:k;
+  const oline=e=>`${e.title} — ${fac(e.faction)} on behalf of ${e.who}${e.urgent?" (urgent)":""}`;
+  P(`# Finn's Facets & Finds — ${fmtDate(dn,{weekday:"long",month:"long",day:"numeric",year:"numeric"})}`);
+  if(!E.length&&!J.length&&!M.length&&!legacy.length){P("");P("Nothing was recorded for this day.");return L.join("\n")}
+  const sec=(title,items)=>{if(items.length){P("");P(`## ${title}`);items.forEach(x=>P(`- ${x}`))}};
+  sec("Commissions offered",by("offer").map(e=>`${oline(e)}, quoted ${cr(e.quote)}, expires ${fmtShort(e.expires)}`));
+  sec("Commissions accepted",by("accept").map(e=>`${oline(e)}, quoted ${cr(e.quote)}${e.deadline?`, due ${fmtShort(e.deadline)}`:""}`));
+  sec("Commissions delivered",by("deliver").map(e=>`${oline(e)} — ${cr(e.total)}, kept ${cr(e.net)} after referral and levy, +${e.rp} RP${e.missed?" (deadline missed)":""}`));
+  sec("Passed, expired or cancelled",[...by("pass").map(e=>`Passed on ${oline(e)}`),...by("expire").map(e=>`Expired: ${oline(e)}`),...by("cancel").map(e=>`Cancelled: ${oline(e)}`),...by("missed").map(e=>`Missed the deadline on ${oline(e)}`)]);
+  const trips=by("trip"),finds=by("find");
+  sec("On the water",[...trips.map(e=>`Sailed out to a Dredge Node (${cr(e.cost)} Metered Mana)${e.tags&&e.tags.length?`, tags: ${e.tags.join(", ")}`:""}`),
+    ...finds.map(e=>`Hauled up ${e.what}${e.kept?"":" — no room, back over the side"}`),...by("home").map(e=>`Returned home${e.moved?` and unloaded ${e.moved} item${e.moved>1?"s":""}`:""}${e.left?` (${e.left} stayed in the hold)`:""}`)]);
+  sec("Workroom",[...by("chisel").map(e=>`Chiseled a ${e.size} geode: ${e.got.join(", ")}`),...by("cut").map(e=>`Cut: ${e.text}`)]);
+  sec("Relics",[...finds.filter(e=>e.relic).map(e=>`Found ${e.what}`),...by("activate").map(e=>`${e.name} woke up`),...by("consign").map(e=>`Consigned ${e.name} to the Registry Salon (Appraised ${cr(e.av)}, opening bid ${cr(e.opening)}, ${e.days} days)`),
+    ...by("bid").map(e=>`New Salon bid on ${e.name}: ${cr(e.bid)} (+${cr(e.inc)})`),
+    ...by("relicSold").map(e=>e.via==="Salon"?`${e.name} sold at the Salon for ${cr(e.gross)} (${e.pct}% of Appraised Value), ${cr(e.net)} after the house fee and Salvage Royalty`:`Sold ${e.name} (${e.size}, ${e.condition}) to the Survey: ${cr(e.gross)}, ${cr(e.net)} after the Salvage Royalty`),
+    ...by("standing").map(e=>`Survey Standing reached Level ${e.level}`)]);
+  sec("Payroll",by("salary").map(e=>`Paid ${e.name} ${cr(e.paid)}${e.owed>0?` (${cr(e.owed)} still owed)`:""}`));
+  sec("Progress",[...by("level").map(e=>`Reached Level ${e.level}`),...by("rep").map(e=>`Reputation with ${fac(e.faction)} reached Level ${e.level}`)]);
+  if(M.length){const inc=M.filter(l=>l.cat==="income"||(!l.cat&&l.amt>0)).reduce((a,l)=>a+l.amt,0),cost=M.filter(l=>l.cat==="cost"||(!l.cat&&l.amt<0)).reduce((a,l)=>a-l.amt,0);
+    P("");P(`## Money`);P(`Business income ${cr(inc)}, business costs ${cr(cost)}. Business account ended the day at ${cr(M[M.length-1].bal)}.`);
+    M.forEach(l=>P(`- ${l.at.split(" ").slice(2).join(" ")} — ${l.text}: ${l.amt>=0?"+":""}${cr(l.amt)}`));
+    W.forEach(l=>P(`- ${l.at.split(" ").slice(2).join(" ")} — Finn's wallet: ${l.text}: ${l.amt>=0?"+":""}${cr(l.amt)}`))}
+  const JJ=J.length?J:legacy;
+  if(JJ.length){P("");P(`## Journal`);if(legacy.length)P("*From before day-by-day activity tracking; matched by date.*");JJ.forEach(l=>P(`- ${l.at.split(" ").slice(2).join(" ")} — ${l.text.replace(/^— /,"")}`))}
+  return L.join("\n");
+}
 
 /* ---------- SETTINGS ---------- */
 VIEWS.settings=()=>{
@@ -1781,7 +1967,7 @@ VIEWS.settings=()=>{
    <div class="grid">
    <div class="panel"><h3>Rules &amp; placeholders</h3>
     <p class="small muted">Numbers from the docs are the defaults. Ones marked * are open threads in the docs, picked so the tool runs — change them freely.</p>
-    <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Dues / month")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}${num("levyPct","Trade Levy %")}${num("royaltyPct","Salvage Royalty %")}${num("permit","Permit / year")}${num("upkeep","Boat upkeep / month")}</div>
+    <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Base dues / month")}${num("duesPerLevel","+ dues per Rep Level")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}${num("levyPct","Trade Levy %")}${num("royaltyPct","Salvage Royalty %")}${num("permit","Permit / year")}${num("upkeep","Boat upkeep / month")}${num("surveyBonusPct","Survey bonus % per Standing")}${num("salonFeePct","Salon house fee %")}</div>
     <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
     <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
     <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
@@ -1814,6 +2000,7 @@ document.addEventListener("click",e=>{
    case"unaccent":unfillAccent(o,i,t.dataset.g);break;
    case"bath":startBath(o,i);break; case"refacet":refacet(o,i);break;
    case"assemble":assemble(o);break; case"pack":packOrder(o);break; case"send":sendOrder(o);break;
+   case"consign":consignRelic(id);break;
    case"packrelic":packRelic(id);break; case"sendrelic":sendRelic(id);break;
    case"buymount":orderMounting(UI.hmBase||"Ring",Math.min(Math.max(UI.hmSlots||BASES[UI.hmBase||"Ring"].min,BASES[UI.hmBase||"Ring"].min),BASES[UI.hmBase||"Ring"].max),UI.hmMetal||"Silver");break;
    case"buyorn":orderOrnament(t.dataset.name);break;
@@ -1826,7 +2013,12 @@ document.addEventListener("click",e=>{
    case"export":download("save.json",JSON.stringify(S,null,1));break;
    case"setwallet":{const v=prompt("Set Finn's personal wallet to:",S.wallet);if(v!=null&&!isNaN(+v)){walletLog(+v-S.wallet,"Manual adjustment");S.wallet=r2(+v);commit()}break}
    case"buyout":buyout();break; case"wspend":walletSpend();break; case"wtobiz":walletToBiz();break;
-   case"setdraw":{const v=prompt("New monthly owner's draw (Finn and Emma agree):",P_().draw);if(v!=null&&+v>=0){addLog(`Owner's draw changed from ${cr(P_().draw)} to ${cr(+v)} a month.`);P_().draw=+v;commit()}break}
+   case"addhire":{S.payroll.push({id:nid("hire"),name:"New hire",role:"Assistant",start:S.clock.day,schedule:"monthly",amount:200,owed:0,wallet:false});addLog("Added a new row to the Salary Ledger.");commit();break}
+   case"endhire":{const r=S.payroll.find(x=>x.id===t.dataset.id);if(!r)break;if(r.owed>0&&!confirm(`${r.name} is still owed ${cr(r.owed)}. Remove anyway? The owed pay is dropped.`))break;
+     if(!(r.owed>0)&&!confirm(`Remove ${r.name} from the Salary Ledger?`))break;S.payroll=S.payroll.filter(x=>x!==r);addLog(`${r.name} left the Salary Ledger.`);commit();break}
+   case"unload":unloadNow();break;
+   case"dayexport":{const v=$("#dayPick").value;if(!v){toast("Pick a day.");break}download(`finn-day-${v}.md`,dayMD(dnOf(v)),"text/markdown");break}
+   case"daycopy":{const v=$("#dayPick").value;if(!v)break;const txt=dayMD(dnOf(v));(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Day copied.")).catch(()=>toast("Couldn't copy — use Download instead."));break}
    case"vclear":setVf({state:"all",rarity:"",gem:"",q:"",hide:false});break;
    case"jump":jumpDate($("#jumpDate").value,false);break;
    case"jumpsim":jumpDate($("#jumpDate").value,true);break;
@@ -1851,6 +2043,12 @@ document.addEventListener("change",e=>{
   if(t.dataset.perk){S.config.perks[t.dataset.perk][t.dataset.f]=+t.value;commit();return}
   if(t.dataset.gemprice){S.config.gemPrices[t.dataset.gemprice]=+t.value;commit();return}
   if(t.dataset.cx){UI[t.dataset.cx]=t.value;render();return}
+  if(t.dataset.pay){const r=(S.payroll||[]).find(x=>x.id===t.dataset.pay),f=t.dataset.f;if(!r)return;
+    if(f==="amount"){if(!(+t.value>=0)){toast("Amount must be a number.");render();return}r.amount=+t.value}
+    else if(f==="start"){if(!t.value){render();return}r.start=dnOf(t.value)}
+    else r[f]=t.value;
+    addLog(`Salary Ledger: ${r.name}'s ${f==="schedule"?"pay schedule":f} updated.`);commit();return}
+  if(t.dataset.lm){UI.lm=UI.lm||{};UI.lm[t.dataset.lm]=t.value;render();return}
   if(t.dataset.vf){const k=t.dataset.vf,v=k==="hide"?t.checked:t.value,ch={[k]:v};
     if(k==="rarity"&&v&&vf().gem&&GEMS[vf().gem].r!==v)ch.gem="";
     setVf(ch);return}
