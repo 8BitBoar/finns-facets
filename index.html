@@ -144,7 +144,7 @@ th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 .log{max-height:430px;overflow:auto;font-size:.88rem}
 .log div{padding:4px 0;border-bottom:1px dotted var(--line)}
 .log .t{color:var(--ink-3);font-size:.78rem;margin-right:6px}
-td.cr-plus,td.cr-minus,.nowrap{white-space:nowrap}
+td.cr-plus,td.cr-minus,.nowrap,table.money td:last-child{white-space:nowrap}
 .cr-plus{color:var(--good);font-weight:600}.cr-minus{color:var(--bad);font-weight:600}
 
 footer.credits{border-top:1px solid var(--line);padding:14px 0 28px;color:var(--ink-3);font-size:.78rem;line-height:1.5}
@@ -227,6 +227,7 @@ const TAGS={Shallows:{fee:0,lean:"Mostly Common gems, small geodes"},Reef:{fee:2
 const TAG_ICON={Shallows:"≈",Reef:"✿",Wreck:"⚓",Rich:"✦",Ruins:"⌂",Vent:"♨",Deep:"▼",Trench:"⇊"};
 const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
 const RELIC_SIZES={Small:{space:4,crate:10},Medium:{space:6,crate:15},Large:{space:8,crate:20},Monumental:{space:12,crate:30}};
+const OLD_RELIC_RANGES={Small:[100,200],Medium:[250,400],Large:[500,800],Monumental:[1000,1500]};
 const CONDITIONS={Damaged:{odds:50,mod:.75},"Slightly Worn":{odds:35,mod:1},Pristine:{odds:15,mod:1.5}};
 const BASES={
  Ring:{price:15,min:1,max:3,styles:{1:"Solitaire",2:"Two-stone",3:"Three-stone"}},
@@ -307,7 +308,8 @@ const FAC=Object.fromEntries(FACTIONS.map(f=>[f.key,f]));
 const DEFAULT_CONFIG={
  startCredits:1000, livesCap:3, lifeCost:2500,
  commissionCap:3, registration:20, referral:10, fee:25, urgentPct:50, urgentChance:15,
- relicBase:4, relicWreck:8, relicRuins:12, condShift:10, crackChance:10,
+ relicBase:1, relicWreck:2, relicRuins:2, condShift:10, crackChance:10,
+ levyPct:5, royaltyPct:10, permit:100, upkeep:50,
  spellLevelBase:1, precisionPerSpellLevel:2,
  gemPrices:{...DEFAULT_GEM_PRICES},
  perks:{bigger_hold:{t:3,max:5},better_rig:{t:5,max:3},node_sense:{t:8,max:3},efficient_engine:{t:2,max:4},sonar_sweep:{t:4,max:2},expanded_storage:{t:3,max:5}},
@@ -366,7 +368,7 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:2, meta:{savedAt:Date.now(),created:Date.now()},
+    version:3, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
@@ -384,6 +386,7 @@ function newGame(startDN){
   s.partner=newPartner();
   fillNodes();
   addLog("Finn opens the shop with 1,000 Cr of starting liquidity from Emma Frost's 883,000 Cr investment. Register with a faction to start getting commissions.");
+  payPermit();
   return s;
 }
 function migrate(s){
@@ -400,6 +403,12 @@ function migrate(s){
     s.version=2;
   }
   if(s.wallet==null)s.wallet=0;
+  if(s.version<3){ // Oct 26 doc update: lower relic find rates and base values, standing fees
+    const c=s.config;if(c.relicBase===4&&c.relicWreck===8&&c.relicRuins===12){c.relicBase=1;c.relicWreck=2;c.relicRuins=2}
+    for(const it of [...(s.hold||[]),...(s.storage||[])])if(it.kind==="relic")it.base=rescaleBase(it.size,it.base);
+    if(s.permitDue==null){let d=addYear((s.partner&&s.partner.startDay)||s.clock.day);while(d<=s.clock.day)d=addYear(d);s.permitDue=d}
+    s.version=3;
+  }
   if(!s.partner){const keep=S;S=s;s.partner=newPartner();S=keep}
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
@@ -410,8 +419,21 @@ function migrate(s){
   }
   return s;
 }
+function rescaleBase(size,b){
+  const o=OLD_RELIC_RANGES[size],n=RELIC_RANGES[size];if(!o||!n||(b>=n[0]&&b<=n[1]))return b;
+  const t=Math.min(1,Math.max(0,(b-o[0])/(o[1]-o[0])));return Math.round((n[0]+t*(n[1]-n[0]))/5)*5;
+}
 const COND_RANK=["Damaged","Slightly Worn","Pristine"];
 /* ---------- PARTNERSHIP (Emma Frost, silent partner) ---------- */
+function payPermit(){ // Interplanar Trade Permit: due on opening day and every anniversary
+  const c=cfg().permit,yr=fmtDate(S.clock.day,{year:"numeric"});
+  if(!canPay(c)){if(S.permitDue==null)S.permitDue=S.clock.day;addLog(`The Interplanar Trade Permit (${cr(c)}) is due, but the business can't cover it yet.`);return `The ${cr(c)} Interplanar Trade Permit is due — not enough Credits; it'll try again tomorrow.`}
+  money(-c,`Interplanar Trade Permit (${fmtDate(S.clock.day,{month:"short",day:"numeric",year:"numeric"})} – ${fmtDate(addYear(S.clock.day)-1,{month:"short",day:"numeric",year:"numeric"})})`);
+  let next=addYear(S.permitDue!=null&&S.permitDue<=S.clock.day?S.permitDue:S.clock.day); // late payment keeps the original anniversary
+  while(next<=S.clock.day)next=addYear(next);
+  S.permitDue=next;
+  return `Renewed the Interplanar Trade Permit (${cr(c)}).`;
+}
 function newPartner(){return {invested:883000,cap:1059600,share:20,draw:300,paid:0,active:true,endedHow:null,
   startDay:S.clock.day,cur:{month:monthOf(S.clock.day),income:0,costs:0},history:[]}}
 const P_=()=>S.partner;
@@ -478,6 +500,7 @@ const todayDN=()=>{const t=new Date();return Math.floor(Date.UTC(t.getFullYear()
 const fmtDate=(dn,o={weekday:"short",month:"short",day:"numeric",year:"numeric"})=>new Date(dn*DAY_MS).toLocaleDateString(undefined,{...o,timeZone:"UTC"});
 const fmtShort=dn=>fmtDate(dn,{month:"short",day:"numeric"});
 const monthOf=dn=>{const d=new Date(dn*DAY_MS);return d.getUTCFullYear()*12+d.getUTCMonth()};
+const addYear=dn=>{const d=new Date(dn*DAY_MS);d.setUTCFullYear(d.getUTCFullYear()+1);return Math.floor(d.getTime()/DAY_MS)};
 const monthName=dn=>fmtDate(dn,{month:"long",year:"numeric"});
 const atHome=()=>S.location==="home";
 const isLate=()=>S.clock.min>=21*60;
@@ -760,7 +783,8 @@ function priceOf(o,live){
   const urgentFee=(o.urgent&&!o.missed)?total*cfg().urgentPct/100:0;
   total+=urgentFee;
   const referral=total*cfg().referral/100;
-  return {gems,spells,parts,fee,urgentFee,total:r2(total),referral:r2(referral),net:r2(total-referral),lines};
+  const levy=total*cfg().levyPct/100;
+  return {gems,spells,parts,fee,urgentFee,total:r2(total),referral:r2(referral),levy:r2(levy),net:r2(total-referral-levy),lines};
 }
 function rpOf(o){
   if(o.urgent&&o.missed)return 0;
@@ -903,12 +927,13 @@ function sendOrder(oid){
     const p=priceOf(o,true),rp=rpOf(o),fac=S.factions[o.faction];
     money(p.total,`${o.title} — ${o.who}`);
     money(-p.referral,`${FAC[o.faction].name} referral cut (${cfg().referral}%)`);
+    money(-p.levy,`Krakoan Trade Levy (${cfg().levyPct}%) — ${o.title}`);
     addRP(o.faction,rp);
     gainXP(5*rp,"completed commission");
     S.orders=S.orders.filter(x=>x!==o);
     S.done.unshift({id:o.id,title:o.title,who:o.who,faction:o.faction,day:S.clock.day,total:p.total,net:p.net,rp,urgent:o.urgent,missed:!!o.missed});
     if(S.done.length>200)S.done.length=200;
-    toast(`Delivered! ${cr(p.net)} after referral, +${rp} RP.`);
+    toast(`Delivered! ${cr(p.net)} after the referral and levy, +${rp} RP.`);
   },"Sent the parcel through the sending circle");
 }
 function addRP(key,rp){
@@ -932,7 +957,8 @@ function socketGem(rid,i,gid){
 }
 function relicPayout(r){
   const gv=r.sockets.reduce((a,s)=>{const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];return a+(g?gemValue(g.type,g.quality):0)},0);
-  return {gems:gv,total:r2((r.base+gv)*CONDITIONS[r.condition].mod)};
+  const gross=r2((r.base+gv)*CONDITIONS[r.condition].mod),royalty=r2(gross*cfg().royaltyPct/100);
+  return {gems:gv,gross,royalty,total:r2(gross-royalty)};
 }
 function packRelic(rid){
   const r=relicById(rid);if(!r||r.stage!=="active"||!atHome())return;
@@ -943,7 +969,7 @@ function packRelic(rid){
 }
 function sendRelic(rid){
   const r=relicById(rid);if(!r||r.stage!=="packed")return;
-  act(5,()=>{const p=relicPayout(r);money(p.total,`Joint Planar Archaeological Survey — ${r.name}`);
+  act(5,()=>{const p=relicPayout(r);money(p.gross,`Joint Planar Archaeological Survey — ${r.name}`);money(-p.royalty,`Salvage Royalty to Krakoa (${cfg().royaltyPct}%) — ${r.name}`);
     gainXP(10*r.sockets.length,"sold an activated relic");
     S.storage=S.storage.filter(x=>x!==r);
     S.lifetime.sold[r.relicId]=(S.lifetime.sold[r.relicId]||0)+1;S.lifetime.earned[r.relicId]=r2((S.lifetime.earned[r.relicId]||0)+p.total);
@@ -1015,7 +1041,11 @@ function overnight(){
     for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
       if(st.autoRenew&&canPay(cfg().registration)){money(-cfg().registration,`${f.name} registration (${monthName(S.clock.day)})`)}
       else{st.registered=false;st.autoRenew=false;notes.push(`Registration with ${f.name} lapsed.`)}}
+    const up=Math.min(cfg().upkeep,Math.max(0,S.credits));
+    if(up>0)money(-up,`Boat upkeep — The Lucky Landshark (${monthName(S.clock.day)})`);
+    if(up<cfg().upkeep)notes.push(`The business could only cover ${cr(up)} of the ${cr(cfg().upkeep)} boat upkeep.`);
   }
+  if(S.permitDue!=null&&S.clock.day>=S.permitDue)notes.push(payPermit());
   // commission rolls
   let got=0;
   for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
@@ -1371,12 +1401,12 @@ function orderCard(o,offer){
     else if(o.stage==="packed")btns=`<button class="btn end" data-act="send" data-o="${o.id}" ${atHome()?"":"disabled"}>Send parcel (5 min)</button>`;
     foot=`<div class="stages">${stages.map((s,i)=>`<span class="${i<=si?"on":""}"></span>`).join("")}</div>
      <div class="row between"><div><div class="muted tiny">Live price · quoted ${cr(o.quote)}</div><div class="price">${cr(p.total)}</div>
-      <div class="muted tiny">You keep ${cr(p.net)} after the ${cfg().referral}% referral · ${rpOf(o)} RP · ${5*rpOf(o)} XP</div></div>
+      <div class="muted tiny">You keep ${cr(p.net)} after the ${cfg().referral}% referral and ${cfg().levyPct}% levy · ${rpOf(o)} RP · ${5*rpOf(o)} XP</div></div>
       <div class="row">${btns}</div></div>
      <details class="small" style="margin-top:6px"><summary>Price breakdown</summary><table>${p.lines.map(([l,v])=>`<tr><td>${esc(l)}</td><td>${cr(v)}</td></tr>`).join("")}
       ${p.parts?`<tr><td>Lapidary Commission &amp; Sourcing Fee (${cfg().fee}% of parts)</td><td>${cr(p.fee)}</td></tr>`:""}
       ${p.urgentFee?`<tr><td>Urgent</td><td>${cr(p.urgentFee)}</td></tr>`:""}
-      <tr><td><b>Total</b></td><td><b>${cr(p.total)}</b></td></tr><tr><td>Referral to faction</td><td>−${cr(p.referral)}</td></tr></table></details>
+      <tr><td><b>Total</b></td><td><b>${cr(p.total)}</b></td></tr><tr><td>Referral to faction</td><td>−${cr(p.referral)}</td></tr><tr><td>Krakoan Trade Levy</td><td>−${cr(p.levy)}</td></tr><tr><td><b>You keep</b></td><td><b>${cr(p.net)}</b></td></tr></table></details>
      ${o.stage==="filling"?`<div style="margin-top:6px"><a href="#" class="small muted" data-act="abandon" data-o="${o.id}">Cancel commission</a></div>`:""}`;
   }
   return `<article class="wo"><div class="wo-h"><div class="fac">${esc(f.name)}</div><h4>${esc(o.title)}</h4>
@@ -1406,11 +1436,11 @@ VIEWS.relics=()=>{
     return `<div class="panel"><h3>${esc(r.name)} <span class="meta">${r.size} · ${r.condition} ×${CONDITIONS[r.condition].mod}</span></h3>
       <p class="small muted">${esc(r.description||"")}</p>
       <div class="sockets">${socks}</div>
-      <div class="row between"><div><div class="muted tiny">Survey payout = (${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod}</div><div class="price">${cr(p.total)}</div><div class="muted tiny">${10*r.sockets.length} XP on sale</div></div>
+      <div class="row between"><div><div class="muted tiny">(${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod} = ${cr(p.gross)}, less ${cr(p.royalty)} Salvage Royalty</div><div class="price">${cr(p.total)}</div><div class="muted tiny">${10*r.sockets.length} XP on sale</div></div>
       <div class="row">${r.stage==="dormant"?`<span class="tag">Dormant — ${r.sockets.filter(s=>!s.gem).length} socket(s) empty</span>`:r.stage==="active"?`<span class="tag ok">Active</span><button class="btn brass" data-act="packrelic" data-id="${r.id}" ${atHome()?"":"disabled"}>Crate it (30 min, ${cr(RELIC_SIZES[r.size].crate)})</button>`:`<button class="btn end" data-act="sendrelic" data-id="${r.id}">Send to the Survey (5 min)</button>`}</div></div></div>`;
   }).join("");
   return `${dbBanner()}${inHold?`<div class="banner">${inHold} relic(s) still in the trawler hold — bring them home to work on them.</div>`:""}
-   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. The Survey pays for its base value plus the gems (base × Quality), times its condition.</p>
+   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. The Survey pays for its base value plus the gems (base × Quality), times its condition; Krakoa takes a 10% Salvage Royalty.</p>
    ${rs.length?`<div class="grid">${cards}</div>`:`<div class="panel empty">No relics in storage. Wreck and Ruins nodes turn them up more often.</div>`}
    ${S.relics.length?`<h2 style="margin:22px 0 10px">Sold to the Survey</h2><div class="panel"><table><tr><th>Date</th><th>Relic</th><th>Condition</th><th>Paid</th></tr>${S.relics.slice(0,30).map(x=>`<tr><td>${fmtShort(x.day)}</td><td>${esc(x.name)} <span class="muted small">${x.size}</span></td><td>${x.condition}</td><td>${cr(x.total)}</td></tr>`).join("")}</table></div>`:""}`;
 };
@@ -1476,7 +1506,7 @@ VIEWS.finn=()=>{
 
 
 /* ---------- CODEX ---------- */
-const RELIC_RANGES={Small:[100,200,2,3],Medium:[250,400,3,5],Large:[500,800,5,7],Monumental:[1000,1500,7,10]};
+const RELIC_RANGES={Small:[25,50,2,3],Medium:[60,100,3,5],Large:[125,200,5,7],Monumental:[250,375,7,10]};
 function dbProblems(){
   const out=[];const have=new Set(DB.spells.map(s=>s.school+"|"+s.level));
   const names=new Set();
@@ -1588,7 +1618,7 @@ function snapshotMD(){
   P(`- Can spell-cut up to ${ordinal(maxSpellLevel())} level${unl.length?`; patterns not learned: ${unl.join(", ")}`:"; all eight school patterns learned"}`);
   {const p=P_();P("");P(`## Partnership with Emma Frost`);
    if(p.active){P(`Emma is a silent partner (883,000 Cr invested, ${p.share}% of distributable profit monthly). Distributed so far: ${cr(p.paid)} of the ${cr(p.cap)} cap (${(p.paid/p.cap*100).toFixed(1)}%); buyout today would cost ${cr(owedLeft())}. Owner's draw: ${cr(p.draw)}/month.`);
-     P(`This month so far: ${cr(p.cur.income)} income, ${cr(p.cur.costs)} business costs.`);
+     P(`This month so far: ${cr(p.cur.income)} income, ${cr(p.cur.costs)} business costs. Interplanar Trade Permit renews ${fmtShort(S.permitDue)}.`);
      if(p.history[0])P(`Last month (${p.history[0].month}): ${cr(p.history[0].profit)} distributable profit, ${cr(p.history[0].emma)} to Emma.`)}
    else P(p.endedHow==="buyout"?"Finn bought Emma out — she owns the business outright.":"Emma's distributions reached the cap — Finn owns the business outright.");}
   P("");P(`## Factions`);
@@ -1647,11 +1677,12 @@ function partnerView(){
     ${done?"":`<div class="row" style="margin-top:10px"><button class="btn brass" data-act="buyout" ${canPay(owedLeft())?"":"disabled"}>Buy Emma out — ${cr(owedLeft())}</button><span class="tiny muted">from the business account</span></div>`}
     <hr class="rule"><dl class="kv"><dt>Invested</dt><dd>${cr(p.invested)} — lighthouse, cottage, dock, workshop, <i>The Lucky Landshark</i>, 1,000 Cr starting liquidity</dd>
      <dt>Profit share</dt><dd>${p.share}% of distributable profit, paid on the 1st</dd><dt>Buyout / cap</dt><dd>${cr(p.cap)} (120% of the investment), less distributions paid</dd>
+     <dt>Running costs</dt><dd>Permit ${cr(cfg().permit)}/yr (next ${fmtShort(S.permitDue)}) · boat upkeep ${cr(cfg().upkeep)}/mo · levy ${cfg().levyPct}% of commissions · Salvage Royalty ${cfg().royaltyPct}% of relics</dd>
      <dt>Owner's draw</dt><dd>${cr(p.draw)}/month <a href="#" class="small" data-act="setdraw">change</a></dd></dl></div>
    </div><div class="grid">
    <div class="panel"><h3>This month <span class="meta">${monthName(S.clock.day)}, so far</span></h3>
-    <table><tr><td>Income (commissions, Survey)</td><td class="cr-plus">${cr(m.income)}</td></tr>
-     <tr><td>Business costs (dues, trips, mana, parts, packing, referrals, perks)</td><td class="cr-minus">−${cr(m.costs)}</td></tr>
+    <table class="money"><tr><td>Income (commissions, Survey)</td><td class="cr-plus">${cr(m.income)}</td></tr>
+     <tr><td>Business costs (dues, levy, royalty, permit, upkeep, trips, mana, parts, packing, referrals, perks)</td><td class="cr-minus">−${cr(m.costs)}</td></tr>
      <tr><td>Owner's draw</td><td class="cr-minus">−${cr(p.draw)}</td></tr>
      <tr><td><b>Distributable profit</b></td><td><b>${cr(proj)}</b></td></tr>
      <tr><td>Emma's ${p.share}% ${proj>0?"":"<span class='tiny muted'>(loss month — nothing owed)</span>"}</td><td>${cr(projE)}</td></tr></table>
@@ -1712,8 +1743,8 @@ VIEWS.settings=()=>{
    <div class="grid">
    <div class="panel"><h3>Rules &amp; placeholders</h3>
     <p class="small muted">Numbers from the docs are the defaults. Ones marked * are open threads in the docs, picked so the tool runs — change them freely.</p>
-    <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Dues / month")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}</div>
-    <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %*")}${num("relicWreck","+ Wreck %*")}${num("relicRuins","+ Ruins %*")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
+    <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Dues / month")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}${num("levyPct","Trade Levy %")}${num("royaltyPct","Salvage Royalty %")}${num("permit","Permit / year")}${num("upkeep","Boat upkeep / month")}</div>
+    <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
     <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
     <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
     <hr class="rule"><h4>Gem base prices*</h4><p class="tiny muted">One number per gem, inside its rarity's range.</p>
