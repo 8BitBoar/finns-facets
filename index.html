@@ -143,6 +143,7 @@ th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 .log{max-height:430px;overflow:auto;font-size:.88rem}
 .log div{padding:4px 0;border-bottom:1px dotted var(--line)}
 .log .t{color:var(--ink-3);font-size:.78rem;margin-right:6px}
+td.cr-plus,td.cr-minus,.nowrap{white-space:nowrap}
 .cr-plus{color:var(--good);font-weight:600}.cr-minus{color:var(--bad);font-weight:600}
 
 .toast{position:fixed;left:50%;bottom:18px;transform:translateX(-50%);background:var(--verd-dd);color:#f4eee0;border:1px solid var(--brass);padding:9px 16px;border-radius:10px;box-shadow:0 6px 24px rgba(0,0,0,.3);z-index:50;max-width:min(92vw,560px);font-size:.92rem;opacity:0;transition:opacity .2s;pointer-events:none}
@@ -300,7 +301,7 @@ const FACTIONS=[
 const FAC=Object.fromEntries(FACTIONS.map(f=>[f.key,f]));
 
 const DEFAULT_CONFIG={
- startCredits:500, livesCap:3, lifeCost:2500,
+ startCredits:1000, livesCap:3, lifeCost:2500,
  commissionCap:3, registration:20, referral:10, fee:25, urgentPct:50, urgentChance:15,
  relicBase:4, relicWreck:8, relicRuins:12, condShift:10, crackChance:10,
  spellLevelBase:1, precisionPerSpellLevel:2,
@@ -356,7 +357,7 @@ function spellTxt(sp){return `${shapeSVG(sp.school)} <b>${esc(sp.name)}</b> <spa
    ================================================================ */
 let S=null;            // the save
 let DB={spells:[],relics:[],factions:null,planes:[]};
-let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vault:"all",cutGem:null,ledgerTab:"events"};
+let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vault:"all",cutGem:null,ledgerTab:"partner"};
 
 function cfg(){return S.config}
 function newGame(){
@@ -364,7 +365,7 @@ function newGame(){
     version:2, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
-    credits:DEFAULT_CONFIG.startCredits,
+    credits:DEFAULT_CONFIG.startCredits, wallet:0,
     location:"home", pos:null,
     xp:0, level:0, statPoints:0, stats:{insight:0,precision:0,renown:0},
     perks:{}, lives:1,
@@ -376,8 +377,9 @@ function newGame(){
     config:deep(DEFAULT_CONFIG), nextId:1,
   };
   S=s;
+  s.partner=newPartner();
   fillNodes();
-  addLog("Finn opens the shop. Register with a faction to start getting commissions.");
+  addLog("Finn opens the shop with 1,000 Cr of starting liquidity from Emma Frost's 883,000 Cr investment. Register with a faction to start getting commissions.");
   return s;
 }
 function migrate(s){
@@ -393,6 +395,8 @@ function migrate(s){
     s.clock.day+=off;[...s.offers,...s.orders,...s.done,...s.relics].forEach(sh);
     s.version=2;
   }
+  if(s.wallet==null)s.wallet=0;
+  if(!s.partner){const keep=S;S=s;s.partner=newPartner();S=keep}
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
     const L=s.lifetime,idByName=n=>(DB.relics.find(r=>r.name===n)||{}).id||n;
@@ -403,6 +407,45 @@ function migrate(s){
   return s;
 }
 const COND_RANK=["Damaged","Slightly Worn","Pristine"];
+/* ---------- PARTNERSHIP (Emma Frost, silent partner) ---------- */
+function newPartner(){return {invested:883000,cap:1059600,share:20,draw:300,paid:0,active:true,endedHow:null,
+  startDay:S.clock.day,cur:{month:monthOf(S.clock.day),income:0,costs:0},history:[]}}
+const P_=()=>S.partner;
+const owedLeft=()=>Math.max(0,r2(P_().cap-P_().paid));
+function closeMonth(label){ // runs on the 1st, for the month that just ended
+  const p=P_(),m=p.cur,notes=[];
+  let draw=Math.min(p.draw,Math.max(0,S.credits));
+  if(draw>0){money(-draw,`Owner's draw — ${label}`,"none");S.wallet=r2(S.wallet+draw);walletLog(draw,`Owner's draw — ${label}`)}
+  if(draw<p.draw)notes.push(`The business could only cover ${cr(draw)} of the ${cr(p.draw)} owner's draw.`);
+  const profit=r2(m.income-m.costs-p.draw);
+  let emma=0;
+  if(p.active&&profit>0){emma=r2(Math.min(profit*p.share/100,owedLeft()));
+    money(-emma,`Emma Frost — ${p.share}% profit distribution, ${label}`,"none");p.paid=r2(p.paid+emma)}
+  p.history.unshift({month:label,income:r2(m.income),costs:r2(m.costs),draw,profit,emma,paidToDate:p.paid});
+  notes.push(p.active?(profit>0?`${label} closed: ${cr(profit)} distributable profit, ${cr(emma)} to Emma.`:`${label} closed with no distributable profit — nothing owed to Emma.`):`${label} closed: ${cr(profit)} distributable profit.`);
+  if(p.active&&p.paid>=p.cap-0.005){p.active=false;p.endedHow="cap";notes.push("Emma's distributions reached the cap — the partnership is over. Finn owns Finn's Facets & Finds outright!");toast("Finn owns everything outright!")}
+  p.cur={month:monthOf(S.clock.day),income:0,costs:0};
+  return notes;
+}
+function buyout(){
+  const p=P_(),price=owedLeft();if(!p.active)return;
+  if(!canPay(price)){toast(`The buyout is ${cr(price)} — the business has ${cr(S.credits)}.`);return}
+  if(!confirm(`Buy Emma out for ${cr(price)}? (${cr(p.cap)} less the ${cr(p.paid)} already distributed.) Finn will own everything outright.`))return;
+  money(-price,"Buyout — Emma Frost's share",'none');p.paid=r2(p.paid+price);p.active=false;p.endedHow="buyout";
+  addLog(`Finn bought Emma out for ${cr(price)}. Finn's Facets & Finds is all hers.`);toast("Bought out! Finn owns everything outright.");commit();
+}
+function walletLog(amt,text){S.wledger=S.wledger||[];S.wledger.unshift({at:stamp(),text,amt:r2(amt),bal:S.wallet});if(S.wledger.length>400)S.wledger.length=400}
+function walletSpend(){
+  const t=prompt("What did Finn spend her own money on?");if(!t)return;
+  const v=+prompt(`How much? (wallet: ${cr(S.wallet)})`);if(!(v>0))return;
+  if(v>S.wallet+1e-9){toast("Not enough in her wallet.");return}
+  S.wallet=r2(S.wallet-v);walletLog(-v,t);addLog(`Finn spent ${cr(v)} of her own money: ${t}.`);commit();
+}
+function walletToBiz(){
+  const v=+prompt(`Put how much of Finn's own money into the business? (wallet: ${cr(S.wallet)})`);if(!(v>0))return;
+  if(v>S.wallet+1e-9){toast("Not enough in her wallet.");return}
+  S.wallet=r2(S.wallet-v);walletLog(-v,"Owner contribution to the business");money(v,"Owner contribution from Finn","none");commit();
+}
 function relinkLifetime(){ // history saved before the relic DB loaded is keyed by name; move it to the relic's id
   if(!S||!S.lifetime||!DB.relics.length)return;const L=S.lifetime;
   for(const r of DB.relics)for(const k of ["found","sold","earned","best"]){const m=L[k];if(m[r.name]!=null&&r.name!==r.id){
@@ -443,7 +486,9 @@ const tripTime=n=>30+15*n.tags.length;
    ================================================================ */
 function stamp(){return `${fmtShort(S.clock.day)} ${fmtTime(S.clock.min)}`}
 function addLog(text){S.log.unshift({at:stamp(),text});if(S.log.length>400)S.log.length=400}
-function money(amount,text){S.credits=r2(S.credits+amount);S.ledger.unshift({at:stamp(),text,amt:r2(amount),bal:S.credits});if(S.ledger.length>600)S.ledger.length=600}
+function money(amount,text,cat){S.credits=r2(S.credits+amount);
+  if(S.partner&&cat!=="none"){if(amount>=0)S.partner.cur.income=r2(S.partner.cur.income+amount);else S.partner.cur.costs=r2(S.partner.cur.costs-amount)}
+  S.ledger.unshift({at:stamp(),text,amt:r2(amount),bal:S.credits});if(S.ledger.length>600)S.ledger.length=600}
 function canPay(a){return S.credits+1e-9>=a}
 function pay(a,text){if(!canPay(a)){toast(`Not enough Credits (need ${cr(a)})`);return false}money(-a,text);return true}
 function spendTime(base){const m=isLate()?Math.ceil(base*1.25):base;S.clock.min+=m;return m}
@@ -926,7 +971,8 @@ function buyPerk(id){
 function addStat(k){if(S.statPoints<1)return;S.statPoints--;S.stats[k]++;addLog(`+1 ${k[0].toUpperCase()+k.slice(1)}.`);commit()}
 function buyLife(){
   if(S.lives>=livesCap()){toast("Already at the lives cap.");return}
-  if(!pay(cfg().lifeCost,"System Shop — Life & Care: 1 life"))return;S.lives++;addLog("Bought a life from the System Shop.");commit();
+  if(S.wallet+1e-9<cfg().lifeCost){toast(`Lives come out of Finn's own wallet — she has ${cr(S.wallet)}, needs ${cr(cfg().lifeCost)}.`);return}
+  S.wallet=r2(S.wallet-cfg().lifeCost);walletLog(-cfg().lifeCost,"System Shop — Life & Care: 1 life");S.lives++;addLog("Bought a life from the System Shop.");commit();
 }
 function spendLife(){
   if(!confirm("Record a death? This spends one life and Finn respawns."))return;
@@ -960,6 +1006,7 @@ function overnight(){
   const nm=monthOf(S.clock.day);
   if(nm!==oldMonth){
     notes.push(`${monthName(S.clock.day)} begins.`);
+    notes.push(...closeMonth(monthName(S.clock.day-1)));
     if(S.lives<livesCap()){S.lives++;notes.push("Monthly life granted.")}else notes.push("Monthly life lost — already at the cap.");
     for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
       if(st.autoRenew&&canPay(cfg().registration)){money(-cfg().registration,`${f.name} registration (${monthName(S.clock.day)})`)}
@@ -1083,7 +1130,7 @@ const GH={
 /* ================================================================
    RENDER
    ================================================================ */
-const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["codex","Codex"],["ledger","Ledger"],["settings","Settings"]];
+const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["codex","Codex"],["ledger","Books"],["settings","Settings"]];
 function render(){renderStatus();renderTabs();const fn=VIEWS[UI.tab];$("#view").innerHTML=fn();if(UI.tab==="sea")bindMap()}
 function renderStatus(){
   if(!S)return;
@@ -1092,7 +1139,8 @@ function renderStatus(){
   $("#status").innerHTML=`
    <span class="pill clock ${isLate()?"late":""}"><b>${fmtDate(S.clock.day)}</b> · ${fmtTime(S.clock.min)}${isLate()?" · working late (+25%)":""}</span>
    <span class="pill">${loc}</span>
-   <span class="pill"><b>${cr(S.credits)}</b></span>
+   <span class="pill" title="Business account">Business <b>${cr(S.credits)}</b></span>
+   <span class="pill" title="Finn's own money">Wallet <b>${cr(S.wallet)}</b></span>
    <span class="pill">Hold <b>${used(S.hold)}/${holdCap()}</b></span>
    <span class="pill">Storage <b>${used(S.storage)}/${storageCap()}</b></span>
    <span class="pill">Lives <b>${S.lives}/${livesCap()}</b></span>
@@ -1146,7 +1194,7 @@ function mapSVG(){
    <rect x="${DOCK.x-14}" y="${DOCK.y-3}" width="28" height="6" fill="#7c5f2a"/>
    <text x="${DOCK.x-6}" y="${DOCK.y+22}" fill="#d8bf86" font-size="11">Dock</text>
    ${route}${nodes}
-   <g transform="translate(${tp.x} ${tp.y})" aria-label="Trawler"><path d="M-14 4 L14 4 L9 12 H-9 Z" fill="#a8823f" stroke="#2a1f0c"/><rect x="-5" y="-7" width="9" height="11" fill="#f4eee0" stroke="#2a1f0c"/><line x1="7" y1="-12" x2="7" y2="4" stroke="#2a1f0c" stroke-width="1.5"/></g>
+   <g transform="translate(${tp.x} ${tp.y})" aria-label="The Lucky Landshark"><path d="M-14 4 L14 4 L9 12 H-9 Z" fill="#a8823f" stroke="#2a1f0c"/><rect x="-5" y="-7" width="9" height="11" fill="#f4eee0" stroke="#2a1f0c"/><line x1="7" y1="-12" x2="7" y2="4" stroke="#2a1f0c" stroke-width="1.5"/></g>
    <g transform="translate(560 474)" fill="#d8bf86" font-size="11"><text x="0" y="0">≈ Shallows ✿ Reef ⚓ Wreck ✦ Rich</text><text x="0" y="15">⌂ Ruins ♨ Vent ▼ Deep ⇊ Trench</text></g>
   </svg>`;
 }
@@ -1180,7 +1228,7 @@ VIEWS.sea=()=>{
       </div>
       ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${here.left} attempt${here.left===1?"":"s"} left before this node fades.</p>`:""}
     </div>
-    <div class="panel"><h3>Trawler hold <span class="meta">${used(S.hold)}/${holdCap()}</span></h3>
+    <div class="panel"><h3><i>The Lucky Landshark</i> — hold <span class="meta">${used(S.hold)}/${holdCap()}</span></h3>
       <div class="bar brass"><i style="width:${Math.min(100,used(S.hold)/holdCap()*100)}%"></i></div>
       ${S.hold.length?`<div class="tscroll"><table><tr><th>Item</th><th>Space</th><th></th><th></th></tr>${S.hold.map(i=>itemRow(i,"hold")).join("")}</table></div>`:`<div class="empty">Empty hold.</div>`}
     </div>
@@ -1399,8 +1447,8 @@ VIEWS.finn=()=>{
     <p class="tiny muted">Thresholds and max ranks are placeholders until they're set in the doc — edit them in Settings.</p></div>
   </div><div class="grid">
    <div class="panel"><h3>Lives</h3><div class="row between"><span style="font-size:1.6rem">${"♥".repeat(S.lives)}<span class="muted">${"♡".repeat(Math.max(0,livesCap()-S.lives))}</span></span><span class="small muted">${S.lives}/${livesCap()}</span></div>
-    <p class="small muted">+1 life on the 1st of each month (lost if at the cap). Life &amp; Care sells lives at ${cr(cfg().lifeCost)}.</p>
-    <div class="row"><button class="btn sm brass" data-act="buylife" ${S.lives>=livesCap()?"disabled":""}>Buy a life — ${cr(cfg().lifeCost)}</button><button class="btn sm danger" data-act="die">Record a death</button></div></div>
+    <p class="small muted">+1 life on the 1st of each month (lost if at the cap). Life &amp; Care sells lives at ${cr(cfg().lifeCost)}, paid from her own wallet (${cr(S.wallet)}).</p>
+    <div class="row"><button class="btn sm brass" data-act="buylife" ${S.lives>=livesCap()||S.wallet<cfg().lifeCost?"disabled":""}>Buy a life — ${cr(cfg().lifeCost)}</button><button class="btn sm danger" data-act="die">Record a death</button></div></div>
    <div class="panel"><h3>Cut patterns <span class="meta">spell levels up to ${maxSpellLevel()}</span></h3>
     <p class="small muted">She learns each school's cut once. Max spell level = ${cfg().spellLevelBase} + Precision ÷ ${cfg().precisionPerSpellLevel} (placeholder, editable in Settings).</p>
     <table>${SCHOOLS.map(s=>`<tr><td>${shapeSVG(s)} <b>${s}</b></td><td class="small muted">${SCHOOL_SHAPE[s]}</td><td><label class="small"><input type="checkbox" data-pattern="${s}" ${S.patterns[s]?"checked":""}> learned</label></td></tr>`).join("")}</table></div>
@@ -1511,7 +1559,7 @@ function snapshotMD(){
   const st=S.stats,combined=st.insight+st.precision+st.renown;
   P(`# Finn's Facets & Finds — Snapshot`);
   P(`**${fmtDate(S.clock.day)}, ${fmtTime(S.clock.min)}**${isLate()?" (working late)":""} · Finn is ${loc}.`);
-  P(`Credits: ${cr(S.credits)} · Lives: ${S.lives}/${livesCap()} · Hold ${used(S.hold)}/${holdCap()} · Storage ${used(S.storage)}/${storageCap()}`);
+  P(`Business account: ${cr(S.credits)} · Finn's wallet: ${cr(S.wallet)} · Lives: ${S.lives}/${livesCap()} · Hold ${used(S.hold)}/${holdCap()} · Storage ${used(S.storage)}/${storageCap()}`);
   P("");P(`## Finn`);
   P(`Level ${S.level} (${S.xp}/${xpToReach(S.level+1)} XP) · Combined Level ${combined}${S.statPoints?` · ${S.statPoints} unspent stat point${S.statPoints>1?"s":""}`:""}`);
   P(`- Insight ${st.insight} (${growthTier(st.insight)})`);P(`- Precision ${st.precision} (${growthTier(st.precision)})`);P(`- Renown ${st.renown} (${growthTier(st.renown)})`);
@@ -1519,6 +1567,11 @@ function snapshotMD(){
   P(`- Perks: ${perks.length?perks.join(", "):"none yet"}`);
   const unl=SCHOOLS.filter(x=>!S.patterns[x]);
   P(`- Can spell-cut up to ${ordinal(maxSpellLevel())} level${unl.length?`; patterns not learned: ${unl.join(", ")}`:"; all eight school patterns learned"}`);
+  {const p=P_();P("");P(`## Partnership with Emma Frost`);
+   if(p.active){P(`Emma is a silent partner (883,000 Cr invested, ${p.share}% of distributable profit monthly). Distributed so far: ${cr(p.paid)} of the ${cr(p.cap)} cap (${(p.paid/p.cap*100).toFixed(1)}%); buyout today would cost ${cr(owedLeft())}. Owner's draw: ${cr(p.draw)}/month.`);
+     P(`This month so far: ${cr(p.cur.income)} income, ${cr(p.cur.costs)} business costs.`);
+     if(p.history[0])P(`Last month (${p.history[0].month}): ${cr(p.history[0].profit)} distributable profit, ${cr(p.history[0].emma)} to Emma.`)}
+   else P(p.endedHow==="buyout"?"Finn bought Emma out — she owns the business outright.":"Emma's distributions reached the cap — Finn owns the business outright.");}
   P("");P(`## Factions`);
   const reg=FACTIONS.filter(f=>S.factions[f.key].registered),rest=FACTIONS.filter(f=>!S.factions[f.key].registered&&(S.factions[f.key].level||S.factions[f.key].rp));
   if(!reg.length&&!rest.length)P("Not registered with any faction yet.");
@@ -1541,7 +1594,7 @@ function snapshotMD(){
       P(`- ${r.name} (${r.size}, ${r.condition}) — ${r.stage==="packed"?"crated for the Survey":r.stage==="active"?"active, all sockets filled":`${filled}/${r.sockets.length} sockets filled`}${S.hold.includes(r)?", still in the trawler hold":""}. Sockets: ${r.sockets.map(k=>`${k.level?ordinal(k.level):"cantrip"} ${k.school}${k.gem?" ✓":""}`).join(", ")}.`)}}
   const geo=s=>{const c={};s.filter(i=>i.kind==="geode").forEach(i=>c[i.size]=(c[i.size]||0)+1);return Object.keys(GEODES).filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(", ")};
   P("");P(`## Stone`);
-  P(`- Trawler hold: ${geo(S.hold)||"no geodes"}`);P(`- Storage Room: ${geo(S.storage)||"no geodes"}`);
+  P(`- *The Lucky Landshark*'s hold: ${geo(S.hold)||"no geodes"}`);P(`- Storage Room: ${geo(S.storage)||"no geodes"}`);
   const by=k=>S.gems.filter(g=>g.state===k);
   P(`- Gem Vault: ${S.gems.length} stones — ${by("rough").length} rough, ${by("plain").length} plain-cut, ${by("spell").length} spell-cut`);
   const notable=S.gems.filter(g=>g.state==="spell"||g.quality==="Perfect"||["Rare","Mythic Rare"].includes(GEMS[g.type].r));
@@ -1561,11 +1614,43 @@ VIEWS.snapshot=()=>`<div class="panel"><h3>Snapshot <span class="meta">Markdown,
   <div class="row" style="margin-bottom:8px"><button class="btn" data-act="snapcopy">Copy</button><button class="btn ghost" data-act="snapdl">Download .md</button></div>
   <textarea id="snapText" readonly style="width:100%;min-height:60vh;font:13px/1.45 ui-monospace,Menlo,monospace;background:var(--pearl);color:var(--ink);border:1px solid var(--line-2);border-radius:8px;padding:10px">${esc(snapshotMD())}</textarea></div>`;
 
-/* ---------- LEDGER ---------- */
+/* ---------- BOOKS ---------- */
+function partnerView(){
+  const p=P_(),m=p.cur,proj=r2(m.income-m.costs-p.draw),projE=p.active&&proj>0?r2(Math.min(proj*p.share/100,owedLeft())):0;
+  const pct=Math.min(100,p.paid/p.cap*100);
+  const done=!p.active;
+  return `<div class="grid g2"><div class="grid">
+   <div class="panel"><h3>Emma Frost — silent partner <span class="meta">${done?"partnership ended":"active"}</span></h3>
+    ${done?`<div class="banner" style="background:#d6ecdc;color:#1f6138;border-color:#9fcfae">${p.endedHow==="buyout"?"Finn bought Emma out.":"Emma's distributions reached the cap."} Finn owns the lighthouse, <i>The Lucky Landshark</i> and the business outright.</div>`:""}
+    <div class="row between"><span>Toward Finn owning it all</span><span class="small muted">${cr(p.paid)} / ${cr(p.cap)}</span></div>
+    <div class="bar brass" style="height:14px;margin:6px 0"><i style="width:${pct}%"></i></div>
+    <div class="small muted">${pct.toFixed(2)}% · ${done?"":`buyout today: <b>${cr(owedLeft())}</b>`}</div>
+    ${done?"":`<div class="row" style="margin-top:10px"><button class="btn brass" data-act="buyout" ${canPay(owedLeft())?"":"disabled"}>Buy Emma out — ${cr(owedLeft())}</button><span class="tiny muted">from the business account</span></div>`}
+    <hr class="rule"><dl class="kv"><dt>Invested</dt><dd>${cr(p.invested)} — lighthouse, cottage, dock, workshop, <i>The Lucky Landshark</i>, 1,000 Cr starting liquidity</dd>
+     <dt>Profit share</dt><dd>${p.share}% of distributable profit, paid on the 1st</dd><dt>Buyout / cap</dt><dd>${cr(p.cap)} (120% of the investment), less distributions paid</dd>
+     <dt>Owner's draw</dt><dd>${cr(p.draw)}/month <a href="#" class="small" data-act="setdraw">change</a></dd></dl></div>
+   </div><div class="grid">
+   <div class="panel"><h3>This month <span class="meta">${monthName(S.clock.day)}, so far</span></h3>
+    <table><tr><td>Income (commissions, Survey)</td><td class="cr-plus">${cr(m.income)}</td></tr>
+     <tr><td>Business costs (dues, trips, mana, parts, packing, referrals, perks)</td><td class="cr-minus">−${cr(m.costs)}</td></tr>
+     <tr><td>Owner's draw</td><td class="cr-minus">−${cr(p.draw)}</td></tr>
+     <tr><td><b>Distributable profit</b></td><td><b>${cr(proj)}</b></td></tr>
+     <tr><td>Emma's ${p.share}% ${proj>0?"":"<span class='tiny muted'>(loss month — nothing owed)</span>"}</td><td>${cr(projE)}</td></tr></table>
+    <p class="tiny muted">Closes on the 1st: the draw moves to Finn's wallet, and Emma's share is paid from the business account.</p></div>
+   <div class="panel"><h3>Monthly distributions</h3>${p.history.length?`<div class="tscroll"><table><tr><th>Month</th><th>Income</th><th>Costs</th><th>Draw</th><th>Profit</th><th>Emma</th></tr>
+    ${p.history.map(h=>`<tr><td>${esc(h.month)}</td><td>${cr(h.income)}</td><td>${cr(h.costs)}</td><td>${cr(h.draw)}</td><td>${cr(h.profit)}</td><td><b>${cr(h.emma)}</b></td></tr>`).join("")}</table></div>`:`<div class="empty">No months closed yet.</div>`}</div>
+  </div></div>`;
+}
+
 VIEWS.ledger=()=>{
   const t=UI.ledgerTab;
-  return `<div class="row" style="margin-bottom:10px"><button class="btn sm ${t==="events"?"":"ghost"}" data-ltab="events">Journal</button><button class="btn sm ${t==="money"?"":"ghost"}" data-ltab="money">Credits</button></div>
-  <div class="panel log">${t==="events"?(S.log.map(l=>`<div><span class="t">${l.at}</span>${esc(l.text)}</div>`).join("")||`<div class="empty">Nothing yet.</div>`)
+  const tb=`<div class="row" style="margin-bottom:10px">${[["partner","Partnership"],["money","Business"],["wallet","Finn's wallet"],["events","Journal"]].map(([k,l])=>`<button class="btn sm ${t===k?"":"ghost"}" data-ltab="${k}">${l}</button>`).join("")}</div>`;
+  if(t==="partner")return tb+partnerView();
+  if(t==="wallet")return tb+`<div class="panel"><h3>Finn's wallet <span class="meta">${cr(S.wallet)}</span></h3>
+    <p class="small muted">Her own money: the owner's draw lands here on the 1st. Lives from Life &amp; Care come out of here.</p>
+    <div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="wspend">Record personal spending</button><button class="btn sm ghost" data-act="wtobiz">Put money into the business</button></div>
+    <div class="log">${(S.wledger||[]).map(l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`).join("")||`<div class="empty">Nothing yet — the first draw arrives on the 1st.</div>`}</div></div>`;
+  return tb+`<div class="panel log">${t==="events"?(S.log.map(l=>`<div><span class="t">${l.at}</span>${esc(l.text)}</div>`).join("")||`<div class="empty">Nothing yet.</div>`)
    :(S.ledger.map(l=>`<div class="row between"><span><span class="t">${l.at}</span>${esc(l.text)}</span><span><span class="${l.amt>=0?"cr-plus":"cr-minus"}">${l.amt>=0?"+":""}${cr(l.amt)}</span> <span class="muted tiny">${cr(l.bal)}</span></span></div>`).join("")||`<div class="empty">No transactions yet.</div>`)}</div>`;
 };
 
@@ -1599,7 +1684,7 @@ VIEWS.settings=()=>{
     <div class="row"><button class="btn ghost" data-act="export">Download save.json</button><label class="btn ghost">Import save<input type="file" accept=".json" id="impSave" hidden></label></div>
     <p class="small muted" style="margin-top:8px">Offline? Load the databases from files instead:</p>
     <div class="row"><label class="btn ghost">Load spells.json<input type="file" accept=".json" id="impSpells" hidden></label><label class="btn ghost">Load relics.json<input type="file" accept=".json" id="impRelics" hidden></label><label class="btn ghost">Load factions.json<input type="file" accept=".json" id="impFactions" hidden></label></div>
-    <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set Credits…</button><button class="btn sm danger" data-act="newgame">New game</button></div>
+    <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set business Credits…</button><button class="btn sm ghost" data-act="setwallet">Set wallet…</button><button class="btn sm danger" data-act="newgame">New game</button></div>
    </div></div>
    <div class="grid">
    <div class="panel"><h3>Rules &amp; placeholders</h3>
@@ -1646,12 +1731,15 @@ document.addEventListener("click",e=>{
    case"ghpull":GH.pullSave(true).then(r=>{toast(r==="none"?"No save.json in the repo yet.":"Loaded the save from GitHub.");render()}).catch(err=>toast(err.message));break;
    case"ghforget":{const c=GH.cfg();if(c){c.token="";lsSet(LS.gh,c)}syncState="off";syncMsg="Not connected";render();break}
    case"export":download("save.json",JSON.stringify(S,null,1));break;
+   case"setwallet":{const v=prompt("Set Finn's personal wallet to:",S.wallet);if(v!=null&&!isNaN(+v)){walletLog(+v-S.wallet,"Manual adjustment");S.wallet=r2(+v);commit()}break}
+   case"buyout":buyout();break; case"wspend":walletSpend();break; case"wtobiz":walletToBiz();break;
+   case"setdraw":{const v=prompt("New monthly owner's draw (Finn and Emma agree):",P_().draw);if(v!=null&&+v>=0){addLog(`Owner's draw changed from ${cr(P_().draw)} to ${cr(+v)} a month.`);P_().draw=+v;commit()}break}
    case"jump":jumpDate($("#jumpDate").value,false);break;
    case"jumpsim":jumpDate($("#jumpDate").value,true);break;
    case"snapcopy":{const txt=snapshotMD();(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Snapshot copied.")).catch(()=>{const ta=$("#snapText");ta.select();document.execCommand("copy");toast("Snapshot copied.")});break}
    case"snapdl":download(`finn-snapshot-${isoOf(S.clock.day)}.md`,snapshotMD(),"text/markdown");break;
    case"theme":{const r=document.documentElement,n={auto:"light",light:"dark",dark:"auto"}[r.dataset.theme||"auto"];if(n==="auto")delete r.dataset.theme;else r.dataset.theme=n;lsSet("fff.theme",n);render();break}
-   case"credits":{const v=prompt("Set Credits to:",S.credits);if(v!=null&&!isNaN(+v)){money(+v-S.credits,"Manual adjustment");commit()}break}
+   case"credits":{const v=prompt("Set the business balance to:",S.credits);if(v!=null&&!isNaN(+v)){money(+v-S.credits,"Manual adjustment","none");commit()}break}
    case"newgame":if(confirm("Start a brand-new save? Your current one is replaced (download it first if you want a copy).")){newGame();lsSet(LS.dirty,true);commit()}break;
   }
 });
