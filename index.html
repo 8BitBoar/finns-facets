@@ -368,7 +368,7 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:3, meta:{savedAt:Date.now(),created:Date.now()},
+    version:4, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
@@ -410,6 +410,13 @@ function migrate(s){
     s.version=3;
   }
   if(!s.partner){const keep=S;S=s;s.partner=newPartner();S=keep}
+  if(s.version<4){
+    for(const o of [...(s.orders||[]),...(s.offers||[])])for(const sl of o.slots||[])if(sl.kind==="accent"){
+      if(sl.req.gemType===undefined)sl.req.gemType=null;
+      if(o.stage==="filling"||o.stage==="offer"){for(const id of sl.fill||[]){const g=(s.gems||[]).find(x=>x.id===id);if(g&&g.state!=="accent")delete g.reserved}
+        sl.fill=(sl.fill||[]).filter(id=>((s.gems||[]).find(x=>x.id===id)||{}).state==="accent")}}
+    s.version=4;
+  }
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
     const L=s.lifetime,idByName=n=>(DB.relics.find(r=>r.name===n)||{}).id||n;
@@ -491,6 +498,8 @@ const commissionCap=()=>cfg().commissionCap;
 const maxSpellLevel=()=>Math.min(9,cfg().spellLevelBase+Math.floor(S.stats.precision/Math.max(1,cfg().precisionPerSpellLevel)));
 const gemPrice=t=>cfg().gemPrices[t]??DEFAULT_GEM_PRICES[t];
 const gemValue=(t,q)=>gemPrice(t)*QUALITY[q].mod;
+const accentValue=(t,q)=>gemValue(t,q)/4; // one gem splits into 4 accents
+const stoneValue=g=>g.state==="accent"?accentValue(g.type,g.quality):gemValue(g.type,g.quality);
 const itemSpace=it=>it.kind==="geode"?GEODES[it.size].space:RELIC_SIZES[it.size].space;
 const used=list=>list.reduce((s,i)=>s+itemSpace(i),0);
 const DAY_MS=86400000;
@@ -641,6 +650,15 @@ function cutPlain(gemId,cut,quiet){
   addLog(`Cut a ${g.quality} ${g.type} — ${cut} (plain).`);
   if(!quiet)commit();return true;
 }
+function cutAccents(gemId,quiet){ // a plain-cut action that yields 4 small accent stones
+  const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return null;
+  if(!atHome()){toast("The faceting wheel is at home.");return null}
+  S.gems=S.gems.filter(x=>x!==g);const made=[];
+  for(let i=0;i<4;i++){const a={id:nid("acc"),type:g.type,quality:g.quality,state:"accent"};S.gems.push(a);made.push(a)}
+  spendTime(60);gainXP(2,"plain cut");
+  addLog(`Cut a ${g.quality} ${g.type} into 4 accent stones (${cr(accentValue(g.type,g.quality))} each).`);
+  if(!quiet)commit();return made;
+}
 function cutSpell(gemId,spellName,quiet){
   const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return false;
   if(!atHome()){toast("The faceting wheel is at home.");return false}
@@ -691,6 +709,7 @@ function pickAffinityGem(school,f){
 function pickPlainGem(f){return wpick(Object.keys(GEMS).map(g=>[g,f.rarity[GEMS[g].r]||1]))}
 function pickPlainCut(t){if(["Opal","Moonstone"].includes(t)&&Math.random()<.5)return "Cabochon";return pick(PLAIN_CUTS)}
 const pickQ=f=>wpick(f.quality);
+function cheapestGem(){return Object.keys(GEMS).sort((a,b)=>gemPrice(a)-gemPrice(b))[0]}
 function cheapestAffinity(school){return Object.keys(GEMS).filter(g=>GEMS[g].s.includes(school)).sort((a,b)=>gemPrice(a)-gemPrice(b))[0]}
 
 function pickClient(f){
@@ -733,7 +752,7 @@ function genOrder(f){
     o.slots.push({kind:"mounting",label:"Mounting",req:{base,slots:n,metal}});
     const k=rint(f.orn[0],f.orn[1]);
     for(const name of shuffle([...Object.keys(ORNAMENTS),"Accent stones"]).slice(0,k)){
-      if(name==="Accent stones")o.slots.push({kind:"accent",label:"Accent stones",req:{count:rint(2,6)},fill:[]});
+      if(name==="Accent stones")o.slots.push({kind:"accent",label:"Accent stones",req:{count:rint(2,8),gemType:Math.random()<.35?pickPlainGem(f):null},fill:[]});
       else o.slots.push({kind:"ornament",label:"Ornamentation",req:{name}});
     }
     const spells=o.slots.filter(s=>s.kind==="gem"&&s.req.spell).length;
@@ -761,7 +780,7 @@ function fillOf(s){
 }
 /* Price = gem base × Quality + spell cost + parts + fee(25% of parts); urgent +50% */
 function priceOf(o,live){
-  let gems=0,spells=0,parts=0;const lines=[];
+  let gems=0,spells=0,parts=0,accents=0;const lines=[];
   for(const s of o.slots){
     const f=live&&o.frozen?o.frozen[o.slots.indexOf(s)]:(live?fillOf(s):null);
     if(s.kind==="gem"){
@@ -775,11 +794,15 @@ function priceOf(o,live){
       const t=(f&&f.type)||s.req.gemType,q=(f&&f.quality)||s.req.minQ,v=gemValue(t,q);gems+=v;lines.push([`Replacement ${q} ${t}`,v]);
     }else if(s.kind==="mounting"){const p=mountingPrice(s.req.base,s.req.slots,s.req.metal);parts+=p;lines.push(["Mounting",p])}
     else if(s.kind==="ornament"){const p=ORNAMENTS[s.req.name];parts+=p;lines.push([s.req.name,p])}
-    else if(s.kind==="accent"){const p=ACCENT_PRICE*s.req.count;parts+=p;lines.push([`Accent setting ×${s.req.count}`,p])}
+    else if(s.kind==="accent"){
+      const fl=live?(Array.isArray(f)?f:null):null,n=s.req.count;
+      const qt=s.req.gemType||cheapestGem(),stones=fl&&fl.length?fl.slice(0,n):null;
+      const sv=stones?stones.reduce((a,g)=>a+accentValue(g.type,g.quality),0)+(n-stones.length)*accentValue(qt,"Crude"):n*accentValue(qt,"Crude");
+      accents+=sv+n*ACCENT_PRICE;lines.push([`${n} accent stones`,sv],[`Setting ${n} accents (${cr(ACCENT_PRICE)} each)`,n*ACCENT_PRICE])}
   }
   if(o.type==="reattune"){const c=spellCost(o.reattune.spell.level)/2;spells+=c;lines.push(["Re-attunement (½ spell)",c])}
   const fee=parts*cfg().fee/100;
-  let total=gems+spells+parts+fee;
+  let total=gems+spells+parts+fee+accents;
   const urgentFee=(o.urgent&&!o.missed)?total*cfg().urgentPct/100:0;
   total+=urgentFee;
   const referral=total*cfg().referral/100;
@@ -802,7 +825,7 @@ function candidates(o,s){
   if(s.kind==="gem"){const r=s.req;return S.gems.filter(g=>!g.reserved&&g.type===r.gemType&&qRank(g.quality)>=qRank(r.minQ)&&(
       r.cut==="rough"?g.state==="rough":r.spell?(g.state==="spell"&&g.spell.name===r.spell.name):(g.state==="plain"&&g.cut===r.cut)))}
   if(s.kind==="replace")return S.gems.filter(g=>!g.reserved&&g.state==="spell"&&g.spell.name===s.req.spell.name);
-  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="plain");
+  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="accent"&&(!s.req.gemType||g.type===s.req.gemType));
   if(s.kind==="mounting")return S.parts.filter(p=>!p.reserved&&p.kind==="mounting"&&p.base===s.req.base&&p.slots===s.req.slots&&p.metal===s.req.metal);
   if(s.kind==="ornament")return S.parts.filter(p=>!p.reserved&&p.kind==="ornament"&&p.name===s.req.name);
   return [];
@@ -811,7 +834,7 @@ function candidates(o,s){
 function roughFor(s){
   if(s.kind==="gem"&&s.req.cut!=="rough")return S.gems.filter(g=>!g.reserved&&g.state==="rough"&&g.type===s.req.gemType&&qRank(g.quality)>=qRank(s.req.minQ));
   if(s.kind==="replace")return S.gems.filter(g=>!g.reserved&&g.state==="rough"&&GEMS[g.type].s.includes(s.req.spell.school));
-  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="rough");
+  if(s.kind==="accent")return S.gems.filter(g=>!g.reserved&&g.state==="rough"&&(!s.req.gemType||g.type===s.req.gemType));
   return [];
 }
 const findOrder=id=>S.orders.find(o=>o.id===id);
@@ -845,13 +868,15 @@ function cutFor(oid,idx){
   const o=findOrder(oid),s=o.slots[idx];
   const pool=roughFor(s).sort((a,b)=>qRank(a.quality)-qRank(b.quality)||gemPrice(a.type)-gemPrice(b.type));
   const g=pool[0];if(!g){toast("No rough stone qualifies.");return}
+  if(s.kind==="accent"){const made=cutAccents(g.id,true);if(!made){render();return}
+    for(const a of made){if(s.fill.length>=s.req.count)break;a.reserved=o.id;s.fill.push(a.id)}
+    commit();return}
   let ok;
-  if(s.kind==="accent")ok=cutPlain(g.id,"Round Brilliant",true);
-  else if(s.req.spell)ok=cutSpell(g.id,s.req.spell.name,true);
+  if(s.req.spell)ok=cutSpell(g.id,s.req.spell.name,true);
   else ok=cutPlain(g.id,s.req.cut,true);
   if(!ok){render();return}
   g.reserved=o.id;
-  if(s.kind==="accent")s.fill.push(g.id);else s.fill=g.id;
+  s.fill=g.id;
   commit();
 }
 function buyPartsFor(oid){
@@ -906,9 +931,7 @@ function assemble(oid){
   if(!atHome()){toast("Assembly happens in the workroom.");return}
   const gemsN=o.slots.filter(s=>s.kind==="gem").length;
   const t=o.type==="piece"?60+15*gemsN:o.type==="reattune"?15:0;
-  const accent=o.slots.filter(s=>s.kind==="accent").reduce((a,s)=>a+s.req.count*ACCENT_PRICE,0);
   act(t,()=>{
-    if(accent&&!pay(accent,"Hallmark's — accent stone setting"))return false;
     o.frozen=o.slots.map(s=>{const f=fillOf(s);return f?deep(f):null});
     for(const s of o.slots){
       const ids=s.kind==="accent"?s.fill:[s.fill];
@@ -1273,14 +1296,22 @@ VIEWS.sea=()=>{
 const VF_DEF={state:"all",rarity:"",gem:"",q:"",hide:false};
 function vf(){if(!UI.vf)UI.vf={...VF_DEF,...lsGet("fff.vault",{})};if(UI.vf.gem&&!GEMS[UI.vf.gem])UI.vf.gem="";return UI.vf}
 function setVf(ch){Object.assign(vf(),ch);lsSet("fff.vault",UI.vf);render()}
+function groupAccents(list){ // show accents as one row per type + quality + spoken-for
+  const out=[],idx={};
+  for(const g of list){if(g.state!=="accent"){out.push(g);continue}
+    const k=g.type+"|"+g.quality+"|"+(g.reserved||"");
+    if(idx[k])idx[k].count++;else{idx[k]={...g,count:1};out.push(idx[k])}}
+  return out;
+}
 function gemRow(g){
   const res=g.reserved?`<span class="tag warn">${g.reserved.startsWith("relic:")?"in a relic":"on a work order"}</span>`:"";
   let cut;
   if(g.state==="rough")cut=`<span class="muted">Rough</span>`;
   else if(g.state==="plain")cut=`${esc(g.cut)} <span class="muted small">(plain)</span>`;
+  else if(g.state==="accent")cut=`Accent stone${g.count>1?`s <b>×${g.count}</b>`:""}`;
   else cut=spellTxt(g.spell);
-  const val=gemValue(g.type,g.quality);
-  return `<tr><td>${gemDot(g.type)} <b>${g.type}</b></td><td>${rarTag(GEMS[g.type].r)}</td><td>${qTag(g.quality)}</td><td>${cut}</td><td>${cr(val)}</td>
+  const val=stoneValue(g);
+  return `<tr><td>${gemDot(g.type)} <b>${g.type}</b></td><td>${rarTag(GEMS[g.type].r)}</td><td>${qTag(g.quality)}</td><td>${cut}</td><td>${cr(val)}${g.state==="accent"?` <span class="tiny muted">each</span>`:""}</td>
    <td>${res}${g.state==="rough"&&!g.reserved?`<button class="btn sm" data-act="cutopen" data-id="${g.id}">Cut…</button>`:""}</td></tr>`;
 }
 function cutPanel(){
@@ -1293,6 +1324,8 @@ function cutPanel(){
    <div class="grid g2">
     <div><h4>Plain cut</h4><p class="small muted">1 hr · no mana · 2 XP</p>
       <div class="row"><select id="plainSel">${PLAIN_CUTS.map(c=>`<option>${c}</option>`).join("")}</select><button class="btn" data-act="cutplain" data-id="${g.id}">Cut</button></div></div>
+    <div style="grid-column:1/-1"><h4>Accent stones</h4><p class="small muted">1 hr · no mana · 2 XP · makes 4 accents worth ${cr(accentValue(g.type,g.quality))} each</p>
+      <button class="btn ghost" data-act="cutaccent" data-id="${g.id}">Split into 4 accents</button></div>
     <div><h4>Spell cut</h4><p class="small muted">1 hr + 30 min per level · mana = 20% of spell price · 3 + level XP · max level now ${maxSpellLevel()}</p>
       ${opts?`<div class="row"><select id="spellSel" style="max-width:100%">${opts}</select><button class="btn brass" data-act="cutspell" data-id="${g.id}">Cut</button></div>`:`<p class="empty">Load the spell database first.</p>`}</div>
    </div><div class="row" style="margin-top:8px"><button class="btn sm ghost" data-act="cutclose">Close</button></div></div>`;
@@ -1316,9 +1349,9 @@ VIEWS.work=()=>{
   ${cutPanel()}
   <div class="grid g2" style="margin-top:14px">
    <div class="panel"><h3>Gem Vault <span class="meta">${active?`${gems.length} of ${S.gems.length}`:S.gems.length} stones</span></h3>
-     <div class="row" style="margin-bottom:6px">${[["all","All"],["rough","Rough"],["plain","Plain cut"],["spell","Spell cut"]].map(([k,l])=>`<button class="btn sm ${f===k?"":"ghost"}" data-vault="${k}">${l} (${cnt(k)})</button>`).join("")}</div>
+     <div class="row" style="margin-bottom:6px">${[["all","All"],["rough","Rough"],["plain","Plain cut"],["spell","Spell cut"],["accent","Accents"]].map(([k,l])=>`<button class="btn sm ${f===k?"":"ghost"}" data-vault="${k}">${l} (${cnt(k)})</button>`).join("")}</div>
      ${filt}
-     ${gems.length?`<div class="tscroll"><table><tr><th>Gem</th><th>Rarity</th><th>Quality</th><th>Cut</th><th>Value</th><th></th></tr>${gems.map(gemRow).join("")}</table></div>`:`<div class="empty">${S.gems.length?"No stones match these filters.":"No stones here yet. Chisel a geode."}</div>`}
+     ${gems.length?`<div class="tscroll"><table><tr><th>Gem</th><th>Rarity</th><th>Quality</th><th>Cut</th><th>Value</th><th></th></tr>${groupAccents(gems).map(gemRow).join("")}</table></div>`:`<div class="empty">${S.gems.length?"No stones match these filters.":"No stones here yet. Chisel a geode."}</div>`}
    </div>
    <div class="grid">
     <div class="panel"><h3>Storage Room <span class="meta">${used(S.storage)}/${storageCap()}</span></h3>
@@ -1346,12 +1379,12 @@ function reqText(s){
   if(s.kind==="replace")return `Any gem cut for ${spellTxt(r.spell)}`;
   if(s.kind==="mounting")return `<b>${mountName(r.base,r.slots,r.metal)}</b> <span class="muted small">(${cr(mountingPrice(r.base,r.slots,r.metal))})</span>`;
   if(s.kind==="ornament")return `<b>${r.name}</b> <span class="muted small">(${cr(ORNAMENTS[r.name])})</span>`;
-  if(s.kind==="accent")return `<b>${r.count} accent stones</b> — any plain-cut gems <span class="muted small">(${cr(r.count*ACCENT_PRICE)} to set)</span>`;
+  if(s.kind==="accent")return `<b>${r.count} accent stones</b> — ${r.gemType?`${gemDot(r.gemType)} ${r.gemType} only`:"any gem type"} <span class="muted small">(¼ of the source gem each + ${cr(ACCENT_PRICE)} to set)</span>`;
   if(s.kind==="bath")return `Re-attune ${spellTxt(r.spell)}`;
   return "";
 }
 function itemName(it){if(!it)return "";if(it.kind==="mounting")return mountName(it.base,it.slots,it.metal);if(it.kind==="ornament")return it.name;
-  return `${it.quality} ${it.type}${it.state==="spell"?" · "+it.spell.name:it.state==="plain"?" · "+it.cut:" · rough"}`}
+  return `${it.quality} ${it.type}${it.state==="spell"?" · "+it.spell.name:it.state==="plain"?" · "+it.cut:it.state==="accent"?" accent":" · rough"}`}
 function slotHTML(o,s,i,offer){
   const pass=!offer&&slotPasses(s);
   let body="";
@@ -1364,8 +1397,8 @@ function slotHTML(o,s,i,offer){
     }else if(s.kind==="accent"){
       const have=fillOf(s),c=candidates(o,s),rc=roughFor(s);
       body=`${have.map(g=>`<span class="tag">${itemName(g)} <a href="#" data-act="unaccent" data-o="${o.id}" data-i="${i}" data-g="${g.id}" aria-label="remove">×</a></span>`).join(" ")}
-       ${have.length<s.req.count?`<div class="row" style="margin-top:4px">${c.length?`<select data-fill="${o.id}" data-i="${i}"><option value="">Add a plain-cut stone…</option>${c.map(g=>`<option value="${g.id}">${esc(itemName(g))}</option>`).join("")}</select>`:""}
-       ${rc.length?`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}">Cut one from rough (1 hr)</button>`:""}</div>`:""}`;
+       ${have.length<s.req.count?`<div class="row" style="margin-top:4px">${c.length?`<select data-fill="${o.id}" data-i="${i}"><option value="">Add an accent…</option>${c.map(g=>`<option value="${g.id}">${esc(itemName(g))}</option>`).join("")}</select>`:""}
+       ${rc.length?`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}">Split a rough into 4 accents (1 hr)</button>`:""}</div>`:""}`;
     }else{
       const c=candidates(o,s),cur=fillOf(s);
       const opts=(cur?[cur]:[]).concat(c);
@@ -1459,7 +1492,7 @@ VIEWS.hallmark=()=>{
     </div>
     <hr class="rule"><h4>Ornamentation</h4>
     <div class="row">${Object.entries(ORNAMENTS).map(([k,v])=>`<button class="btn sm ghost" data-act="buyorn" data-name="${k}">${k} — ${cr(v)}</button>`).join("")}</div>
-    <p class="small muted">Accent stones: ${cr(ACCENT_PRICE)} per stone to set, charged at assembly. Finn supplies the stones (plain-cut gems — a good home for Crude Commons).</p>
+    <p class="small muted">Accent stones aren't a Hallmark item: Finn splits one rough gem into 4 accents at the faceting wheel. Each sells at ¼ of its source gem plus her ${cr(ACCENT_PRICE)} setting fee, with no sourcing fee.</p>
     <hr class="rule"><h4>Metals</h4><table>${Object.entries(METALS).map(([k,v])=>`<tr><td>${k}</td><td>×${v}</td></tr>`).join("")}</table>
    </div>
    <div class="panel"><h3>Parts drawer <span class="meta">${S.parts.length}</span></h3>${partsList()}
@@ -1593,7 +1626,7 @@ function reqPlain(s){
   if(s.kind==="replace")return `replacement gem cut for ${sp(r.spell)}`;
   if(s.kind==="mounting")return `${mountName(r.base,r.slots,r.metal)} mounting`;
   if(s.kind==="ornament")return r.name;
-  if(s.kind==="accent")return `${r.count} accent stones`;
+  if(s.kind==="accent")return `${r.count} accent stones${r.gemType?` (${r.gemType})`:""}`;
   if(s.kind==="bath")return `Manasonic Bath re-attunement of ${sp(r.spell)}`;
   return "";
 }
@@ -1645,8 +1678,8 @@ function snapshotMD(){
   P("");P(`## Stone`);
   P(`- *The Lucky Landshark*'s hold: ${geo(S.hold)||"no geodes"}`);P(`- Storage Room: ${geo(S.storage)||"no geodes"}`);
   const by=k=>S.gems.filter(g=>g.state===k);
-  P(`- Gem Vault: ${S.gems.length} stones — ${by("rough").length} rough, ${by("plain").length} plain-cut, ${by("spell").length} spell-cut`);
-  const notable=S.gems.filter(g=>g.state==="spell"||g.quality==="Perfect"||["Rare","Mythic Rare"].includes(GEMS[g.type].r));
+  P(`- Gem Vault: ${S.gems.length} stones — ${by("rough").length} rough, ${by("plain").length} plain-cut, ${by("spell").length} spell-cut, ${by("accent").length} accents`);
+  const notable=S.gems.filter(g=>g.state!=="accent").filter(g=>g.state==="spell"||g.quality==="Perfect"||["Rare","Mythic Rare"].includes(GEMS[g.type].r));
   for(const g of notable.slice(0,25))P(`  - ${g.quality} ${g.type}${g.state==="spell"?`, cut for ${g.spell.name}`:g.state==="plain"?`, ${g.cut} cut`:", rough"}${g.reserved?" (spoken for)":""}`);
   if(S.parts.length)P(`- Hallmark parts on hand: ${S.parts.map(p=>p.kind==="mounting"?`${p.metal} ${BASES[p.base].styles[p.slots]} ${BASE_LABEL[p.base].toLowerCase()}`:p.name).join("; ")}`);
   P("");P(`## Dredge Nodes`);
@@ -1768,6 +1801,7 @@ document.addEventListener("click",e=>{
    case"toss":toss(t.dataset.where,id);break; case"chisel":chisel(id);break;
    case"cutopen":UI.cutGem=id;render();$("#cutpanel")?.scrollIntoView({behavior:"smooth",block:"start"});break;
    case"cutclose":UI.cutGem=null;render();break;
+   case"cutaccent":if(cutAccents(id)){UI.cutGem=null;render()}break;
    case"cutplain":if(cutPlain(id,$("#plainSel").value)){UI.cutGem=null;render()}break;
    case"cutspell":if(cutSpell(id,$("#spellSel").value)){UI.cutGem=null;render()}break;
    case"accept":accept(o);break; case"decline":decline(o);break; case"abandon":abandon(o);break;
