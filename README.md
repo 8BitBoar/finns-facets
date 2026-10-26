@@ -1,33 +1,73 @@
-# Finn's Facets & Finds
+# finns-facets-data (private)
 
-Business tool for Finley "Finn" Anderson — dredging, chiseling, cutting, work orders, factions, relics, perks and lives — in one HTML page.
+Data for the Finn's Facets & Finds page. After editing any file here, reload the page. **Codex → Database check** flags mistakes.
 
-The page is public (GitHub Pages). Everything that's yours — the spell database, the relic database and the save — lives in a **private** repo, `finns-facets-data`, the same split as Loot Ledger.
+## spells.json
+319 D&D 5e spells (mostly SRD 5.1). Add a spell by adding an entry to the `"spells"` list:
 
-## Setup
+```json
+{"name": "Fireball", "level": 3, "school": "Evocation"}
+```
 
-1. **Create two repos** on GitHub under `8BitBoar`:
-   - `finns-facets` — **public**. Upload `index.html` and this README.
-   - `finns-facets-data` — **private**. Upload `spells.json`, `relics.json` and its README. (`save.json` is created by the page on first connect.)
-2. **Turn on Pages** for `finns-facets`: Settings → Pages → Deploy from a branch → `main` / root. The page will be at `https://8bitboar.github.io/finns-facets/`.
-3. **Make a fine-grained token**: GitHub → Settings → Developer settings → Fine-grained tokens → Generate.
-   - Repository access: *Only select repositories* → `finns-facets-data`
-   - Permissions → Repository → **Contents: Read and write**
-4. Open the page → **Settings** → owner `8BitBoar`, repo `finns-facets-data`, branch `main`, paste the token → **Save & connect**.
+- `name` must be unique — work orders and the Codex's cut counts match spells by name, so don't rename one that's already in use.
+- `level`: 0 (cantrip) to 9.
+- `school`: one of Abjuration, Conjuration, Divination, Enchantment, Evocation, Illusion, Necromancy, Transmutation (spelled exactly, capitalized).
+- Order doesn't matter; the tool sorts them.
 
-The token is stored only in that browser. Do it once per device (laptop, iPhone); the save syncs through the data repo.
+## relics.json
+Add a relic by adding an entry to the `"relics"` list:
 
-## Saving
+```json
+{
+ "id": "relic-21",
+ "name": "Anchor of the Drowned Queen",
+ "size": "Medium",
+ "base": 320,
+ "description": "What it is and what it shows when it wakes.",
+ "sockets": [
+  {"school": "Abjuration", "level": 2},
+  {"school": "Divination", "level": 0},
+  {"school": "Evocation", "level": 1}
+ ]
+}
+```
 
-- Every change saves to the browser instantly.
-- **Auto-save** (Settings): *After changes* pushes `save.json` to GitHub ~12 seconds after you stop clicking; *After End Day* pushes once per day; *Manual* only when you press the button.
-- If two devices both changed the save, the page asks which one to keep.
-- **Download save.json** in Settings gives you a manual backup.
+- `id` must be unique and never change once used — the Codex counts finds by it.
+- `size` and `base`: Small 100–200, Medium 250–400, Large 500–800, Monumental 1,000–1,500 Cr.
+- Socket count: Small 2–3, Medium 3–5, Large 5–7, Monumental 7–10.
+- Each socket needs at least one spell of that school and level in spells.json (there's no 3rd-level Enchantment, for example), or it can never be filled.
 
-## Daily loop
+## factions.json
+Organizations and people for each faction; commissions read "Faction on behalf of X". The file is shaped like this (one faction shown; the real file has all eight under `"factions"`):
 
-1. **Sea** — tap a Dredge Node, sail out (pay its fuel), dredge until the node fades or the hold fills, return home to unload.
-2. **Workroom** — chisel geodes, then cut stones plain or with a spell.
-3. **Work Orders** — accept offers, fill each slot from inventory (or "Cut from rough" straight into a slot, "Order parts" for mountings/ornaments), assemble, pack, send.
-4. **Relics** — socket matching spell-cut gems; once active, crate it and send it to the Survey.
-5. **End Day** — registered factions roll for commissions, new nodes appear, bath soaks finish, offers expire, deadlines tick; a new month brings dues and the monthly life.
+```json
+{
+ "planes": ["Alara", "Amonkhet", "...every plane..."],
+ "factions": {
+  "peer": {
+   "name": "Peerage Assembly & Heraldic Council",
+   "organizations": [
+    {"id": "aldermoor", "name": "House Aldermoor", "planes": ["Belenon"], "note": "Knightly house with strict heraldry"}
+   ],
+   "people": [
+    {"name": "Lord Castellan Ives", "title": "castellan", "org": "aldermoor"},
+    {"name": "Dame Isolde Marrow", "title": "private collector", "planes": ["Serra's Realm"]}
+   ]
+  }
+ }
+}
+```
+
+To add an organization, add an entry to that faction's `"organizations"` list. To add a person, add one to its `"people"` list — the first person above is linked to House Aldermoor (and uses its plane); the second is independent and lists her own plane.
+
+- Faction keys stay `adv`, `arc`, `sch`, `col`, `peer`, `syn`, `tem`, `forge`.
+- Organization: `id` (unique in its faction), `name`, `planes`, optional `note`.
+- Person: `name`, optional `title`, optional `org` (an organization id in the same faction). A linked person uses the org's planes unless they list their own `planes`.
+- `planes` at the top lists every plane from the Timeline Notes; the Database check uses it to catch typos.
+
+The starter organizations and people are drafts — rename, add or delete freely.
+
+## save.json
+Written by the page. Don't hand-edit while the page is open on another device.
+
+Spell names from the D&D 5e System Reference Document 5.1 are used under CC-BY-4.0 (Wizards of the Coast).
