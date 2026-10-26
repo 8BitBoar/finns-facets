@@ -364,10 +364,10 @@ let DB={spells:[],relics:[],factions:null,planes:[]};
 let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vault:"all",cutGem:null,ledgerTab:"partner"};
 
 function cfg(){return S.config}
-function newGame(){
+function newGame(startDN){
   const s={
     version:2, meta:{savedAt:Date.now(),created:Date.now()},
-    clock:{day:todayDN(),min:420},
+    clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
     location:"home", pos:null,
@@ -1688,7 +1688,11 @@ VIEWS.settings=()=>{
     <div class="row"><button class="btn ghost" data-act="export">Download save.json</button><label class="btn ghost">Import save<input type="file" accept=".json" id="impSave" hidden></label></div>
     <p class="small muted" style="margin-top:8px">Offline? Load the databases from files instead:</p>
     <div class="row"><label class="btn ghost">Load spells.json<input type="file" accept=".json" id="impSpells" hidden></label><label class="btn ghost">Load relics.json<input type="file" accept=".json" id="impRelics" hidden></label><label class="btn ghost">Load factions.json<input type="file" accept=".json" id="impFactions" hidden></label></div>
-    <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set business Credits…</button><button class="btn sm ghost" data-act="setwallet">Set wallet…</button><button class="btn sm danger" data-act="newgame">New game</button></div>
+    <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set business Credits…</button><button class="btn sm ghost" data-act="setwallet">Set wallet…</button><button class="btn sm danger" data-act="newgame">New game…</button></div>
+    ${UI.newGame?`<div class="slot" style="margin-top:10px;border-color:var(--bad)"><div class="lbl">New game</div>
+     <p class="small" style="margin:4px 0 8px">When did Finn's Facets &amp; Finds open? The save starts that morning at 7:00 AM with 1,000 Cr, and Emma's partnership begins the same day. Your current save is replaced — download it first if you want a copy.</p>
+     <div class="row" style="align-items:flex-end"><label class="f">Opening date<input type="date" id="ngDate" value="${isoOf(todayDN())}"></label>
+      <button class="btn danger" data-act="newgo">Start new game</button><button class="btn ghost" data-act="newcancel">Cancel</button></div></div>`:""}
    </div></div>
    <div class="grid">
    <div class="panel"><h3>Rules &amp; placeholders</h3>
@@ -1744,7 +1748,11 @@ document.addEventListener("click",e=>{
    case"snapdl":download(`finn-snapshot-${isoOf(S.clock.day)}.md`,snapshotMD(),"text/markdown");break;
    case"theme":{const r=document.documentElement,n={auto:"light",light:"dark",dark:"auto"}[r.dataset.theme||"auto"];if(n==="auto")delete r.dataset.theme;else r.dataset.theme=n;lsSet("fff.theme",n);render();break}
    case"credits":{const v=prompt("Set the business balance to:",S.credits);if(v!=null&&!isNaN(+v)){money(+v-S.credits,"Manual adjustment","none");commit()}break}
-   case"newgame":if(confirm("Start a brand-new save? Your current one is replaced (download it first if you want a copy).")){newGame();lsSet(LS.dirty,true);commit()}break;
+   case"newgame":UI.newGame=true;render();$("#ngDate")?.focus();break;
+   case"newcancel":UI.newGame=false;render();break;
+   case"newgo":{const v=$("#ngDate").value;if(!v){toast("Pick an opening date.");break}
+     if(!confirm(`Start a new game with the shop opening on ${fmtDate(dnOf(v))}? Your current save is replaced.`))break;
+     UI.newGame=false;newGame(dnOf(v));lsSet(LS.dirty,true);commit();toast(`New game — Finn's opens ${fmtDate(S.clock.day)}.`);break}
   }
 });
 document.addEventListener("input",e=>{if(e.target.id==="cxQ"){UI.cxQ=e.target.value;clearTimeout(UI.qT);UI.qT=setTimeout(()=>{render();const el=$("#cxQ");if(el){el.focus();el.setSelectionRange(el.value.length,el.value.length)}},250)}});
