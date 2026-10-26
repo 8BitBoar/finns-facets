@@ -32,3 +32,8 @@ The token is stored only in that browser. Do it once per device (laptop, iPhone)
 4. **Relics** — socket matching spell-cut gems; once active, crate it and send it to the Survey.
 5. **End Day** — on the 1st of each month the Books close: Finn's 300 Cr owner's draw moves from the business into her wallet, and Emma Frost gets 20% of the month's distributable profit (income − business costs − draw; nothing in a loss month). The **Books** tab shows the progress bar toward the 1,059,600 Cr cap and the buyout button.
 6. **Also on End Day** — registered factions roll for commissions, new nodes appear, bath soaks finish, offers expire, deadlines tick; a new month brings dues and the monthly life.
+
+## Credits
+
+- Spell names from *Dungeons & Dragons* 5th Edition by Wizards of the Coast; most come from the System Reference Document 5.1, used under CC-BY-4.0. Unofficial fan content, not approved or endorsed by Wizards of the Coast.
+- Whale Shark icon by T. Kiefer Robertson from the Noun Project (CC BY 3.0), used for the seal and favicon.
