@@ -1240,6 +1240,9 @@ VIEWS.sea=()=>{
 };
 
 /* ---------- WORKROOM ---------- */
+const VF_DEF={state:"all",rarity:"",gem:"",q:"",hide:false};
+function vf(){if(!UI.vf)UI.vf={...VF_DEF,...lsGet("fff.vault",{})};if(UI.vf.gem&&!GEMS[UI.vf.gem])UI.vf.gem="";return UI.vf}
+function setVf(ch){Object.assign(vf(),ch);lsSet("fff.vault",UI.vf);render()}
 function gemRow(g){
   const res=g.reserved?`<span class="tag warn">${g.reserved.startsWith("relic:")?"in a relic":"on a work order"}</span>`:"";
   let cut;
@@ -1266,14 +1269,26 @@ function cutPanel(){
 }
 VIEWS.work=()=>{
   const geodes=S.storage.filter(i=>i.kind==="geode"),relics=S.storage.filter(i=>i.kind==="relic");
-  const f=UI.vault,gems=S.gems.filter(g=>f==="all"||g.state===f).sort((a,b)=>a.state.localeCompare(b.state)||RARITIES.indexOf(GEMS[b.type].r)-RARITIES.indexOf(GEMS[a.type].r)||a.type.localeCompare(b.type)||qRank(b.quality)-qRank(a.quality));
-  const cnt=k=>S.gems.filter(g=>k==="all"||g.state===k).length;
+  const V=vf(),f=V.state;
+  const pass=(g,skip)=>(skip==="state"||f==="all"||g.state===f)&&(skip==="rarity"||!V.rarity||GEMS[g.type].r===V.rarity)&&(skip==="gem"||!V.gem||g.type===V.gem)&&(skip==="q"||!V.q||g.quality===V.q)&&(!V.hide||!g.reserved);
+  const gems=S.gems.filter(g=>pass(g)).sort((a,b)=>a.state.localeCompare(b.state)||RARITIES.indexOf(GEMS[b.type].r)-RARITIES.indexOf(GEMS[a.type].r)||a.type.localeCompare(b.type)||qRank(b.quality)-qRank(a.quality));
+  const cnt=k=>S.gems.filter(g=>pass(g,"state")&&(k==="all"||g.state===k)).length;
+  const gemTypes=Object.keys(GEMS).filter(t=>!V.rarity||GEMS[t].r===V.rarity);
+  const gcount=t=>S.gems.filter(g=>pass(g,"gem")&&g.type===t).length;
+  const active=V.state!=="all"||V.rarity||V.gem||V.q||V.hide;
+  const filt=`<div class="row" style="margin-bottom:8px">
+     <select data-vf="rarity" aria-label="Rarity"><option value="">All rarities</option>${RARITIES.map(r=>`<option ${V.rarity===r?"selected":""}>${r}</option>`).join("")}</select>
+     <select data-vf="gem" aria-label="Gem"><option value="">All gems</option>${RARITIES.filter(r=>!V.rarity||r===V.rarity).map(r=>`<optgroup label="${r}">${gemTypes.filter(t=>GEMS[t].r===r).map(t=>`<option value="${t}" ${V.gem===t?"selected":""}>${t} (${gcount(t)})</option>`).join("")}</optgroup>`).join("")}</select>
+     <select data-vf="q" aria-label="Quality"><option value="">All qualities</option>${QUALITIES.map(q=>`<option ${V.q===q?"selected":""}>${q}</option>`).join("")}</select>
+     <label class="small"><input type="checkbox" data-vf="hide" ${V.hide?"checked":""}> Hide spoken-for</label>
+     ${active?`<a href="#" class="small" data-act="vclear">Clear</a>`:""}</div>`;
   return `${dbBanner()}${atHome()?"":`<div class="banner">Finn is out on the water. The workroom tools are back at the lighthouse.</div>`}
   ${cutPanel()}
   <div class="grid g2" style="margin-top:14px">
-   <div class="panel"><h3>Gem Vault <span class="meta">${S.gems.length} stones</span></h3>
+   <div class="panel"><h3>Gem Vault <span class="meta">${active?`${gems.length} of ${S.gems.length}`:S.gems.length} stones</span></h3>
      <div class="row" style="margin-bottom:6px">${[["all","All"],["rough","Rough"],["plain","Plain cut"],["spell","Spell cut"]].map(([k,l])=>`<button class="btn sm ${f===k?"":"ghost"}" data-vault="${k}">${l} (${cnt(k)})</button>`).join("")}</div>
-     ${gems.length?`<div class="tscroll"><table><tr><th>Gem</th><th>Rarity</th><th>Quality</th><th>Cut</th><th>Value</th><th></th></tr>${gems.map(gemRow).join("")}</table></div>`:`<div class="empty">No stones here yet. Chisel a geode.</div>`}
+     ${filt}
+     ${gems.length?`<div class="tscroll"><table><tr><th>Gem</th><th>Rarity</th><th>Quality</th><th>Cut</th><th>Value</th><th></th></tr>${gems.map(gemRow).join("")}</table></div>`:`<div class="empty">${S.gems.length?"No stones match these filters.":"No stones here yet. Chisel a geode."}</div>`}
    </div>
    <div class="grid">
     <div class="panel"><h3>Storage Room <span class="meta">${used(S.storage)}/${storageCap()}</span></h3>
@@ -1712,7 +1727,7 @@ VIEWS.settings=()=>{
 document.addEventListener("click",e=>{
   const t=e.target.closest("[data-tab],[data-act],[data-vault],[data-ltab],[data-codex]");if(!t)return;
   if(t.dataset.tab){e.preventDefault();UI.tab=t.dataset.tab;render();window.scrollTo({top:0});return}
-  if(t.dataset.vault){UI.vault=t.dataset.vault;render();return}
+  if(t.dataset.vault){setVf({state:t.dataset.vault});return}
   if(t.dataset.codex){UI.codex=t.dataset.codex;render();return}
   if(t.dataset.ltab){UI.ledgerTab=t.dataset.ltab;render();return}
   const a=t.dataset.act,id=t.dataset.id,o=t.dataset.o,i=+t.dataset.i;
@@ -1742,6 +1757,7 @@ document.addEventListener("click",e=>{
    case"setwallet":{const v=prompt("Set Finn's personal wallet to:",S.wallet);if(v!=null&&!isNaN(+v)){walletLog(+v-S.wallet,"Manual adjustment");S.wallet=r2(+v);commit()}break}
    case"buyout":buyout();break; case"wspend":walletSpend();break; case"wtobiz":walletToBiz();break;
    case"setdraw":{const v=prompt("New monthly owner's draw (Finn and Emma agree):",P_().draw);if(v!=null&&+v>=0){addLog(`Owner's draw changed from ${cr(P_().draw)} to ${cr(+v)} a month.`);P_().draw=+v;commit()}break}
+   case"vclear":setVf({state:"all",rarity:"",gem:"",q:"",hide:false});break;
    case"jump":jumpDate($("#jumpDate").value,false);break;
    case"jumpsim":jumpDate($("#jumpDate").value,true);break;
    case"snapcopy":{const txt=snapshotMD();(navigator.clipboard?navigator.clipboard.writeText(txt):Promise.reject()).then(()=>toast("Snapshot copied.")).catch(()=>{const ta=$("#snapText");ta.select();document.execCommand("copy");toast("Snapshot copied.")});break}
@@ -1765,6 +1781,9 @@ document.addEventListener("change",e=>{
   if(t.dataset.perk){S.config.perks[t.dataset.perk][t.dataset.f]=+t.value;commit();return}
   if(t.dataset.gemprice){S.config.gemPrices[t.dataset.gemprice]=+t.value;commit();return}
   if(t.dataset.cx){UI[t.dataset.cx]=t.value;render();return}
+  if(t.dataset.vf){const k=t.dataset.vf,v=k==="hide"?t.checked:t.value,ch={[k]:v};
+    if(k==="rarity"&&v&&vf().gem&&GEMS[vf().gem].r!==v)ch.gem="";
+    setVf(ch);return}
   if(t.id==="hmBase"){UI.hmBase=t.value;UI.hmSlots=BASES[t.value].min;render();return}
   if(t.id==="hmSlots"){UI.hmSlots=+t.value;render();return}
   if(t.id==="hmMetal"){UI.hmMetal=t.value;render();return}
