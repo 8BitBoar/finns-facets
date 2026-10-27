@@ -27,11 +27,17 @@ The token is stored only in that browser. Do it once per device (laptop, iPhone)
 ## Daily loop
 
 1. **Sea** — tap a Dredge Node, sail out (pay its fuel), dredge until the node fades or the hold fills, return home to unload. Tags roll in tiers (Common 70%, Uncommon 22%, Rare 7%, Legendary 1%); the **Tag guide** under the map lists every tag and Wave-Touched sister.
-2. **Workroom** — chisel geodes, then cut stones plain or with a spell.
+2. **Workroom** — chisel geodes, then cut stones plain or with a spell — or grind rough Crude gems into Gem Dust for Perk Packs.
 3. **Work Orders** — accept offers, fill each slot from inventory (or "Cut from rough" straight into a slot, "Order parts" for mountings/ornaments), assemble, pack, send.
 4. **Relics** — socket matching spell-cut gems (the socket's echoed spell makes it Resonant, +2% each, +5% more for Full Resonance); once active, crate it, then sell it to the Survey (instant, with a Survey Standing bonus and a monthly limit) or consign it to the Registry Salon auction (bids each night, sells after 4–7 days).
 5. **End Day** — standing fees come out automatically: the 100 Cr Interplanar Trade Permit on opening day and each anniversary, 50 Cr boat upkeep on the 1st, the 5% Krakoan Trade Levy on each delivered commission, and the 10% Salvage Royalty on each relic sale. Payroll runs from the **Salary Ledger** (Books): Finn's 300 Cr salary goes to her wallet on the 1st, hires can be paid monthly, weekly or every 2 weeks, and any shortfall is owed and paid off nightly. On the 1st the Books also close: Emma Frost gets 20% of the month's distributable profit (income − business costs − salaries; nothing in a loss month). The **Books** tab shows the progress bar toward the 1,059,600 Cr cap and the buyout button.
 6. **Also on End Day** — registered factions roll for commissions, new nodes appear, bath soaks finish, offers expire, deadlines tick; a new month brings faction dues (20 Cr + 5 Cr per Reputation Level) and the monthly life.
+
+## Perk Cards
+
+- Stats are card capacity: a card costs points in its Stat equal to the rank you equip it at. Swap freely at home; the loadout locks on the trawler.
+- Each Level gives a stat point and a free Perk Pack; a new game starts with a 3-card starter pack. Packs cost 10 Gem Dust.
+- Cards live in `cards.json` in the data repo, icons in its `card-icons/` folder.
 
 ## Books
 
@@ -40,5 +46,8 @@ The token is stored only in that browser. Do it once per device (laptop, iPhone)
 
 ## Credits
 
+The page's footer links to a full **Credits & licenses** page.
+
 - Spell names from *Dungeons & Dragons* 5th Edition by Wizards of the Coast; most come from the System Reference Document 5.1, used under CC-BY-4.0. Unofficial fan content, not approved or endorsed by Wizards of the Coast.
 - Whale Shark icon by T. Kiefer Robertson from the Noun Project (CC BY 3.0), used for the seal and favicon.
+- Card icon credits come from the `credits` list in `cards.json`.

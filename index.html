@@ -159,6 +159,20 @@ footer.credits p{margin:0 0 6px;max-width:900px}
 .kv dt{color:var(--ink-3)} .kv dd{margin:0}
 .statbox{text-align:center;padding:10px;border:1px solid var(--line);border-radius:10px;background:var(--pearl)}
 .statbox .n{font-family:"Cormorant Garamond",serif;font-size:2.2rem;font-weight:700;line-height:1}
+.cardgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:14px;align-items:start}
+.pcard{--st:#2f6b62;background:var(--card);border:3px solid var(--st);border-radius:14px;padding:8px;box-shadow:var(--shadow);display:flex;flex-direction:column;gap:6px}
+.pcard.st-precision{--st:#a8823f}.pcard.st-renown{--st:#8c3b4a}
+.pcard.sig{box-shadow:0 0 0 2px var(--gold),var(--shadow)}
+.pcard.equipped{background:color-mix(in srgb,var(--card) 88%,var(--st))}
+.pcard.unknown{opacity:.6;border-style:dashed}
+.pc-name{display:flex;justify-content:space-between;align-items:center;gap:6px;font-family:"Cormorant Garamond",serif;font-weight:700;font-size:1.12rem;border-bottom:1px solid var(--line);padding-bottom:4px}
+.pc-art{aspect-ratio:4/3;border-radius:8px;background:var(--pearl-2);display:flex;align-items:center;justify-content:center;overflow:hidden;border:1px solid var(--line)}
+.pc-art img{width:62%;height:62%;object-fit:contain}
+.pc-type{font-size:.76rem;text-transform:uppercase;letter-spacing:.06em;color:var(--ink-2);font-weight:600}
+.pc-text{background:var(--pearl);border:1px solid var(--line);border-radius:8px;padding:6px 8px;min-height:72px}
+.pc-flavor{font-family:"Cormorant Garamond",serif;font-style:italic;font-size:.98rem;color:var(--ink-2);margin-top:5px;border-top:1px dotted var(--line-2);padding-top:4px}
+.pc-foot{margin-top:2px}
+.pips{display:flex;gap:4px;justify-content:center}.pips i{width:10px;height:10px;border-radius:50%;border:1.5px solid var(--st);display:inline-block}.pips i.on{background:color-mix(in srgb,var(--st) 35%,transparent)}.pips i.eq{background:var(--st)}
 .sockets{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
 .sock{border:1px dashed var(--line-2);border-radius:8px;padding:6px 8px;min-width:150px;flex:1;background:var(--pearl)}
 .sock.filled{border-style:solid;border-color:#9fcfae}
@@ -188,10 +202,7 @@ details summary{cursor:pointer;font-weight:600}
   </div>
 </header>
 <main><div class="wrap" id="view"></div></main>
-<footer class="credits"><div class="wrap">
-  <p>Spell names come from <i>Dungeons &amp; Dragons</i> 5th Edition by Wizards of the Coast. This work includes material taken from the System Reference Document 5.1 (&ldquo;SRD 5.1&rdquo;) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document" target="_blank" rel="noopener">dnd.wizards.com</a>. The SRD 5.1 is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International License</a>. A few spell names outside the SRD remain the property of Wizards of the Coast. This is unofficial fan content, not approved or endorsed by Wizards of the Coast.</p>
-  <p>Whale Shark icon by T. Kiefer Robertson from <a href="https://thenounproject.com" target="_blank" rel="noopener">the Noun Project</a> (CC BY 3.0).</p>
-</div></footer>
+<footer class="credits"><div class="wrap"><p>Unofficial fan content. Spell names from D&amp;D 5e (SRD 5.1, CC-BY-4.0) · <a href="#" data-tab="credits">Credits &amp; licenses</a></p></div></footer>
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
 <script>
@@ -260,6 +271,7 @@ const SISTERS={
  "Dröfn":"Foam Lace: the first gem found is upgraded one Quality step",
  "Kólga":"Dead Calm: travel time halved, tag surcharges halved (rounded down), −5 min per attempt",
 };
+const TAG_CONFLICTS={Shallows:["Deep","Storm Front","Trench","Rán's Net"],"Kelp Forest":["Trench"]}; // a Teeming Waters third tag never contradicts the first two
 const RARITY_SHIFT={Deep:[-15,0,8,7],"Storm Front":[-5,0,2,3],Shallows:[15,-5,-7,-3]}; // Common, Uncommon, Rare, Mythic Rare
 const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
 const RELIC_SIZES={Small:{space:4,crate:10,standing:1,auction:4},Medium:{space:6,crate:15,standing:2,auction:5},Large:{space:8,crate:20,standing:3,auction:6},Monumental:{space:12,crate:30,standing:5,auction:7}};
@@ -288,14 +300,20 @@ const rpToReach=n=>Math.round(10*Math.pow(1.3,n-1));
 const GROWTH=[[0,"Baseline"],[5,"Honed"],[10,"Beta"],[20,"Alpha"],[40,"Omega"],[80,"Divine"],[160,"Cosmic"]];
 function growthTier(p){if(p>=320){let r=1,lo=320;while(p>=lo*2){lo*=2;r++}return "Beyond, Rank "+r}let t="Baseline";for(const [n,name] of GROWTH)if(p>=n)t=name;return t}
 
-const PERKS=[
- {id:"bigger_hold",name:"Bigger Hold",stat:"insight",effect:"+10 trawler hold space"},
- {id:"better_rig",name:"Better Dredge Rig",stat:"insight",effect:"+1 attempt per Dredge Node"},
- {id:"node_sense",name:"Node Sense",stat:"insight",effect:"+1 Dredge Node visible at once"},
- {id:"efficient_engine",name:"Efficient Engine",stat:"insight",effect:"−1 Cr per trawler trip (minimum 1)"},
- {id:"sonar_sweep",name:"Sonar Sweep",stat:"insight",effect:"Reveals 1 more tag per node, chosen at random"},
- {id:"expanded_storage",name:"Expanded Storage",stat:"renown",effect:"+20 home storage"},
-];
+/* ---------- PERK CARDS ---------- */
+const STATS=["insight","precision","renown"],STAT_NAME={insight:"Insight",precision:"Precision",renown:"Renown"};
+const CARD_RARITY_ODDS={Common:60,Uncommon:30,Rare:10};
+const DUST_BY_RARITY={Common:1,Uncommon:2,Rare:5,"Mythic Rare":10};
+const PERK_PACK_COST=10,DUP_REFUND=5;
+const EFFECT_TEXT={holdSpace:"+{v} trawler hold space",storageSpace:"+{v} home storage",nodeAttempts:"+{v} attempt per Dredge Node",nodesVisible:"+{v} Dredge Node visible at once",
+ fuelDiscount:"−{v} Cr per trawler trip (minimum 1)",sonarReveal:"Reveals {v} tag per node (rank 3: all tags)",thirdTagPct:"+{v}% chance a two-tag node rolls a third tag",
+ resonantSocketPct:"+{v}% per Resonant relic socket",fullResonancePct:"+{v}% Full Resonance bonus",commissionCap:"+{v} active commission",livesCap:"+{v} to the lives cap"};
+const cardDef=id=>(DB.cards||[]).find(c=>c.id===id);
+const cardCost=(d,rank)=>d.signature?(d.cost||2):rank;
+function eff(type){let t=0;for(const [id,c] of Object.entries(S.cards||{})){const d=cardDef(id);if(d&&c.equip>0&&d.effect&&d.effect.type===type)t+=(d.effect.perRank||0)*(d.signature?1:c.equip)}return t}
+function statUsed(st){let t=0;for(const [id,c] of Object.entries(S.cards||{})){const d=cardDef(id);if(d&&c.equip>0&&(d.stats||[]).includes(st))t+=cardCost(d,c.equip)}return t}
+function effectLine(d,rank){if(d.text&&rank==null)return d.text;const e=d.effect||{},tpl=EFFECT_TEXT[e.type]||"(unknown effect)";
+  return rank==null?`${tpl.replace("{v}",e.perRank)} per rank`:tpl.replace("{v}",(e.perRank||0)*(d.signature?1:rank))}
 
 const FACTIONS=[
  {key:"adv",name:"Adventurer Association & Union",reps:"Adventurer Guilds",
@@ -348,7 +366,6 @@ const DEFAULT_CONFIG={
  levyPct:5, royaltyPct:10, permit:100, upkeep:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5, relicPlanar:2, resonantPct:2, fullResonancePct:5,
  spellLevelBase:1, precisionPerSpellLevel:2,
  gemPrices:{...DEFAULT_GEM_PRICES},
- perks:{bigger_hold:{t:3,max:5},better_rig:{t:5,max:3},node_sense:{t:8,max:3},efficient_engine:{t:2,max:4},sonar_sweep:{t:4,max:2},expanded_storage:{t:3,max:5}},
 };
 
 /* ================================================================
@@ -398,19 +415,20 @@ function spellTxt(sp){return `${shapeSVG(sp.school)} <b>${esc(sp.name)}</b> <spa
    STATE
    ================================================================ */
 let S=null;            // the save
-let DB={spells:[],relics:[],factions:null,planes:[]};
+let DB={spells:[],relics:[],factions:null,planes:[],cards:[],cardCredits:[]};
+let ICONS={}; // card icon file -> data URI, cached in this browser
 let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vault:"all",cutGem:null,ledgerTab:"partner"};
 
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:8, meta:{savedAt:Date.now(),created:Date.now()},
+    version:9, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
     location:"home", pos:null,
-    xp:0, level:0, statPoints:0, stats:{insight:0,precision:0,renown:0},
-    perks:{}, lives:1,
+    xp:0, level:0, statPoints:0, stats:{insight:1,precision:1,renown:1},
+    cards:{}, dust:0, packs:[{kind:"starter",count:3}], lives:1,
     patterns:Object.fromEntries(SCHOOLS.map(s=>[s,true])),
     nodes:[], hold:[], storage:[], gems:[], parts:[], relics:[],
     factions:Object.fromEntries(FACTIONS.map(f=>[f.key,{rp:0,level:0,registered:false,autoRenew:false}])),
@@ -429,7 +447,6 @@ function newGame(startDN){
 function migrate(s){
   s.config=Object.assign(deep(DEFAULT_CONFIG),s.config||{});
   s.config.gemPrices=Object.assign({...DEFAULT_GEM_PRICES},s.config.gemPrices||{});
-  s.config.perks=Object.assign(deep(DEFAULT_CONFIG.perks),s.config.perks||{});
   for(const f of FACTIONS) if(!s.factions[f.key]) s.factions[f.key]={rp:0,level:0,registered:false,autoRenew:false};
   for(const k of ["nodes","hold","storage","gems","parts","relics","offers","orders","done","log","ledger"]) s[k]=s[k]||[];
   s.meta=s.meta||{savedAt:Date.now()};
@@ -470,6 +487,14 @@ function migrate(s){
     s.config.relicPlanar=s.config.relicPlanar??2;s.config.resonantPct=s.config.resonantPct??2;s.config.fullResonancePct=s.config.fullResonancePct??5;
     s.echoQueue=s.echoQueue||[];for(const n of s.nodes||[]){if(n.arrived===undefined)n.arrived=true;if(n.firstGeode===undefined)n.firstGeode=true}
     s.version=8;
+  }
+  if(s.version<9){
+    if(!s.cards){s.cards={};const map={bigger_hold:"bigger_hold",better_rig:"better_dredge_rig",node_sense:"node_sense",efficient_engine:"efficient_engine",sonar_sweep:"sonar_sweep",expanded_storage:"expanded_storage"};
+      for(const [k,v] of Object.entries(s.perks||{}))if(v>0&&map[k])s.cards[map[k]]={rank:Math.min(v,3),max:3,equip:0}}
+    delete s.perks;if(s.config)delete s.config.perks;
+    for(const k of ["insight","precision","renown"])s.stats[k]=Math.max(1,s.stats[k]||0);
+    s.dust=s.dust||0;s.packs=s.packs||(Object.keys(s.cards).length?[]:[{kind:"starter",count:3}]);
+    s.version=9;
   }
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
@@ -575,12 +600,11 @@ function noteFound(L,id,cond){L.found[id]=(L.found[id]||0)+1;if(!L.best[id]||CON
 const nid=p=>`${p}${S.nextId++}`;
 
 /* derived */
-const prank=id=>S.perks[id]||0;
-const holdCap=()=>20+10*prank("bigger_hold");
-const storageCap=()=>60+20*prank("expanded_storage");
-const nodesVisible=()=>3+prank("node_sense");
-const livesCap=()=>cfg().livesCap;
-const commissionCap=()=>cfg().commissionCap;
+const holdCap=()=>20+eff("holdSpace");
+const storageCap=()=>60+eff("storageSpace");
+const nodesVisible=()=>3+eff("nodesVisible");
+const livesCap=()=>cfg().livesCap+eff("livesCap");
+const commissionCap=()=>cfg().commissionCap+eff("commissionCap");
 const maxSpellLevel=()=>Math.min(9,cfg().spellLevelBase+Math.floor(S.stats.precision/Math.max(1,cfg().precisionPerSpellLevel)));
 const gemPrice=t=>cfg().gemPrices[t]??DEFAULT_GEM_PRICES[t];
 const gemValue=(t,q)=>gemPrice(t)*QUALITY[q].mod;
@@ -606,7 +630,7 @@ function tripCost(n){
   if(S.freeTrip)return 0; // Hrönn pushed the boat along
   let sur=(n.tags||[]).reduce((s,t)=>s+(TAGS[t]?TAGS[t].fee:0),0);
   if(sisterOf(n)==="Kólga")sur=Math.floor(sur/2);
-  return Math.max(1,5+sur-prank("efficient_engine"));
+  return Math.max(1,5+sur-eff("fuelDiscount"));
 }
 const tripTime=n=>{const t=30+15*n.tags.length;return sisterOf(n)==="Kólga"?Math.round(t/2):t};
 const attemptTime=n=>20+(hasTag(n,"Storm Front")?10:0)+(sisterOf(n)==="Uðr"?10:0)-(sisterOf(n)==="Kólga"?5:0);
@@ -636,7 +660,7 @@ function spendTime(base){const m=isLate()?Math.ceil(base*1.25):base;S.clock.min+
 function gainXP(n,why){
   if(!n)return;S.xp+=n;
   let msg=`+${n} XP (${why})`;
-  while(S.xp>=xpToReach(S.level+1)){S.xp-=xpToReach(S.level+1);S.level++;S.statPoints++;msg+=` — Level ${S.level}! +1 stat point`;ev("level",{level:S.level})}
+  while(S.xp>=xpToReach(S.level+1)){S.xp-=xpToReach(S.level+1);S.level++;S.statPoints++;S.packs=S.packs||[];S.packs.push({kind:"level",count:1,level:S.level});msg+=` — Level ${S.level}! +1 stat point and a free Perk Pack`;ev("level",{level:S.level})}
   addLog(msg);
 }
 let toastT=null;
@@ -660,7 +684,7 @@ function rollTag(exclude){ // tier first (Common 70 / Uncommon 22 / Rare 7 / Leg
   return pick(Object.keys(TAGS).filter(t=>!exclude.includes(t)));
 }
 function rollAttempts(tags,wave){
-  let a=rint(3,6)+(tags.includes("Rich")?2:0)+(tags.includes("Shark Run")?1:0)+(tags.includes("Kelp Forest")?2:0)+(wave==="Bylgja"?1:0)+prank("better_rig");
+  let a=rint(3,6)+(tags.includes("Rich")?2:0)+(tags.includes("Shark Run")?1:0)+(tags.includes("Kelp Forest")?2:0)+(wave==="Bylgja"?1:0)+eff("nodeAttempts");
   if(wave==="Dúfa")a*=2;
   if(wave==="Blóðughadda")a=Math.max(1,a-1);
   return a;
@@ -670,6 +694,7 @@ function genNode(spec){
   if(spec){({tags,wave,x,y}=spec)}
   else{
     tags=[];const n2=Math.random()<.4?2:1;for(let i=0;i<n2;i++)tags.push(rollTag(tags));
+    if(tags.length===2&&Math.random()*100<eff("thirdTagPct")){const ex=[...tags];for(const t of tags)ex.push(...(TAG_CONFLICTS[t]||[]));for(const [a,list] of Object.entries(TAG_CONFLICTS))if(tags.some(t=>list.includes(t)))ex.push(a);tags.push(rollTag(ex))}
     wave=tags.includes("Wave-Touched")?pick(Object.keys(SISTERS)):null;
     let tries=0;do{x=rint(290,760);y=rint(45,455);tries++}while(tries<60&&S.nodes.some(o=>Math.hypot(o.x-x,o.y-y)<95));
   }
@@ -681,7 +706,7 @@ function fillNodes(){
   S.echoQueue=[];
   while(S.nodes.length<nodesVisible())S.nodes.push(genNode());
 }
-function revealed(n){return hasTag(n,"Fog Bank")?[]:n.revealOrder.slice(0,prank("sonar_sweep"))}
+function revealed(n){if(hasTag(n,"Fog Bank"))return [];const k=eff("sonarReveal");return k>=3?n.revealOrder.slice():n.revealOrder.slice(0,k)}
 
 function sail(id){
   const n=nodeById(id);if(!n)return;
@@ -1161,7 +1186,7 @@ function socketGem(rid,i,gid){
 const socketGemOf=(r,s)=>S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];
 const isResonant=(r,s)=>{const g=s.gem&&socketGemOf(r,s);return !!(g&&g.spell&&s.echo&&g.spell.name===s.echo)};
 function resonance(r){const n=r.sockets.filter(s=>isResonant(r,s)).length,full=n>0&&n===r.sockets.length;
-  return {n,full,pct:n*cfg().resonantPct+(full?cfg().fullResonancePct:0)}}
+  return {n,full,pct:n*(cfg().resonantPct+eff("resonantSocketPct"))+(full?cfg().fullResonancePct+eff("fullResonancePct"):0)}}
 function relicPayout(r){ // Appraised Value, plus what the Survey would pay today
   const gv=r.sockets.reduce((a,s)=>{const g=socketGemOf(r,s);return a+(g?gemValue(g.type,g.quality):0)},0);
   const rs=resonance(r),pre=r2((r.base+gv)*CONDITIONS[r.condition].mod),resBonus=r2(pre*rs.pct/100);
@@ -1235,16 +1260,54 @@ function register(key){
   f.registered=true;f.autoRenew=true;addLog(`Registered with ${FAC[key].name}.`);commit();
 }
 function commissionChance(key){return 10+5*S.factions[key].level}
-function perkCost(p,toRank){return 100*cfg().perks[p.id].t*toRank}
-function buyPerk(id){
-  const p=PERKS.find(x=>x.id===id),pc=cfg().perks[id],r=prank(id);
-  if(S.stats[p.stat]<pc.t){toast("Not unlocked yet.");return}
-  if(r>=pc.max){toast("Already at max rank.");return}
-  const c=perkCost(p,r+1);
-  if(!pay(c,`Perk — ${p.name} rank ${r+1}`))return;
-  S.perks[id]=r+1;addLog(`Bought ${p.name} rank ${r+1}.`);
-  if(id==="node_sense")fillNodes();
+function grindGem(id){
+  const g=S.gems.find(x=>x.id===id);if(!g)return;
+  if(!atHome()){toast("The grinding wheel is at home.");return}
+  if(g.state!=="rough"||g.quality!=="Crude"||g.reserved){toast("Only rough Crude gems can be ground into Gem Dust.");return}
+  const d=DUST_BY_RARITY[GEMS[g.type].r];
+  if(d>=5&&!confirm(`Grind a Crude ${g.type} (worth ${cr(gemValue(g.type,"Crude"))}) into ${d} Gem Dust?`))return;
+  act(15,()=>{S.gems=S.gems.filter(x=>x!==g);S.dust=(S.dust||0)+d;ev("grind",{gem:g.type,dust:d});toast(`+${d} Gem Dust (${S.dust} total).`)},`Ground a Crude ${g.type} into ${d} Gem Dust`);
+}
+function buyPack(){
+  if((S.dust||0)<PERK_PACK_COST){toast(`A Perk Pack costs ${PERK_PACK_COST} Gem Dust — you have ${S.dust||0}.`);return}
+  S.dust-=PERK_PACK_COST;S.packs=S.packs||[];S.packs.push({kind:"bought",count:1});addLog(`Bought a Perk Pack for ${PERK_PACK_COST} Gem Dust.`);commit();
+}
+function drawCard(){
+  const pool=DB.cards||[];if(!pool.length)return null;
+  const odds=Object.fromEntries(Object.entries(CARD_RARITY_ODDS).filter(([r])=>pool.some(c=>c.rarity===r)));
+  const rar=wpick(odds)||pick(pool).rarity;return pick(pool.filter(c=>c.rarity===rar));
+}
+function openPack(i){
+  const pk=(S.packs||[])[i];if(!pk)return;
+  if(!(DB.cards||[]).length){toast("Load cards.json first (Settings).");return}
+  const out=[];
+  for(let k=0;k<pk.count;k++){const d=drawCard(),c=S.cards[d.id];
+    if(!c){S.cards[d.id]={rank:1,max:d.maxRank||1,equip:0};out.push({id:d.id,result:"new",rank:1})}
+    else if(c.rank<c.max){c.rank++;out.push({id:d.id,result:"rankup",rank:c.rank})}
+    else{S.dust=(S.dust||0)+DUP_REFUND;out.push({id:d.id,result:"refund",rank:c.rank})}}
+  S.packs.splice(i,1);S.lastDraw=out;
+  const words=out.map(o=>`${cardDef(o.id).name} (${o.result==="new"?"new":o.result==="rankup"?"→ rank "+o.rank:"max rank, +"+DUP_REFUND+" Gem Dust"})`);
+  addLog(`Opened a ${pk.kind==="starter"?"starter pack":"Perk Pack"}: ${words.join(", ")}.`);ev("pack",{kind:pk.kind,cards:words});commit();
+}
+function equipCard(id,rank){
+  const c=S.cards[id],d=cardDef(id);if(!c||!d)return;
+  if(!atHome()){toast("Your loadout is locked while you're out on the trawler.");render();return}
+  rank=Math.max(0,Math.min(rank,c.rank));
+  const old=c.equip;c.equip=rank;
+  const over=(d.stats||[]).find(st=>statUsed(st)>S.stats[st]);
+  if(over){const need=statUsed(over);c.equip=old;toast(`Not enough ${STAT_NAME[over]} — that loadout needs ${need}, you have ${S.stats[over]}. Raise ${STAT_NAME[over]} or unequip something.`);render();return}
+  addLog(rank?`Equipped ${d.name} at rank ${rank}.`:`Unequipped ${d.name}.`);
+  if(d.effect&&d.effect.type==="nodesVisible"&&rank>old)fillNodes();
   commit();
+}
+function recutCard(id){
+  const c=S.cards[id],d=cardDef(id);if(!c||!d)return;
+  if(d.signature||d.fixedMax){toast(`${d.name} can't be Recut.`);return}
+  if(c.rank<c.max){toast("Only a card at max rank can be Recut.");return}
+  const cost=500*c.max;
+  if(!confirm(`Recut ${d.name}? ${cr(cost)} from the business account raises its max rank from ${c.max} to ${c.max+2}.`))return;
+  if(!pay(cost,`Recut — ${d.name} (max ${c.max} → ${c.max+2})`))return;
+  c.max+=2;addLog(`Recut ${d.name}: max rank ${c.max}.`);ev("recut",{name:d.name,max:c.max,cost});commit();
 }
 function addStat(k){if(S.statPoints<1)return;S.statPoints--;S.stats[k]++;addLog(`+1 ${k[0].toUpperCase()+k.slice(1)}.`);commit()}
 function buyLife(){
@@ -1336,6 +1399,10 @@ function jumpDate(iso,simulate){
    GITHUB DATA REPO
    ================================================================ */
 function setFactions(j){DB.factions=j.factions||j;DB.planes=j.planes||[]}
+function setCards(j){DB.cards=j.cards||j;DB.cardCredits=j.credits||[]}
+const ICON_MIME={svg:"image/svg+xml",png:"image/png",jpg:"image/jpeg",jpeg:"image/jpeg",webp:"image/webp",gif:"image/gif"};
+const PLACEHOLDER_ICON="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64"><rect width="64" height="64" rx="10" fill="#dfece6"/><circle cx="32" cy="32" r="22" fill="none" stroke="#8fbfb3" stroke-width="3" stroke-dasharray="4 5"/><text x="32" y="43" text-anchor="middle" font-family="Georgia,serif" font-size="32" font-weight="700" fill="#2f6b62">?</text></svg>');
+const iconSrc=d=>(d&&d.icon&&ICONS[d.icon])||PLACEHOLDER_ICON;
 const LS={save:"fff.save",gh:"fff.gh",db:"fff.db",dirty:"fff.dirty",synced:"fff.syncedAt",sha:"fff.saveSha"};
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}}
 function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
@@ -1359,6 +1426,20 @@ const GH={
     else{const r2=await fetch(this.url(path,true),{headers:{...this.headers(),Accept:"application/vnd.github.raw+json"},cache:"no-store"});text=await r2.text()}
     return {data:JSON.parse(text),sha:j.sha};
   },
+  async getFile(path){ // binary-safe: returns a data URI
+    const r=await fetch(this.url(path,true),{headers:this.headers(),cache:"no-store"});
+    if(r.status===404)return null;if(!r.ok)throw new Error(`GitHub ${r.status} reading ${path}`);
+    const j=await r.json(),ext=(path.split(".").pop()||"").toLowerCase();
+    let b64=(j.content||"").replace(/\s/g,"");
+    if(!b64){const r2=await fetch(this.url(path,true),{headers:{...this.headers(),Accept:"application/vnd.github.raw+json"},cache:"no-store"});const buf=new Uint8Array(await r2.arrayBuffer());let bin="";for(let i=0;i<buf.length;i+=0x8000)bin+=String.fromCharCode.apply(null,buf.subarray(i,i+0x8000));b64=btoa(bin)}
+    return `data:${ICON_MIME[ext]||"application/octet-stream"};base64,${b64}`;
+  },
+  async loadIcons(){
+    const want=[...new Set((DB.cards||[]).map(c=>c.icon).filter(Boolean))].filter(f=>!ICONS[f]);
+    DB.iconMissing=[];
+    for(const f of want){try{const u=await this.getFile("card-icons/"+f);if(u)ICONS[f]=u;else DB.iconMissing.push(f)}catch(e){console.warn(e)}}
+    lsSet("fff.icons",ICONS);
+  },
   async put(path,data,sha,message){
     const c=this.cfg();
     const body={message,content:b64enc(JSON.stringify(data,null,1)),branch:c.branch||"main"};if(sha)body.sha=sha;
@@ -1367,13 +1448,15 @@ const GH={
     return (await r.json()).content.sha;
   },
   async loadDBs(){
-    const [sp,rl,fc]=await Promise.all([this.get("spells.json"),this.get("relics.json"),this.get("factions.json")]);
+    const [sp,rl,fc,cd]=await Promise.all([this.get("spells.json"),this.get("relics.json"),this.get("factions.json"),this.get("cards.json")]);
+    if(cd)setCards(cd.data);
     if(sp)DB.spells=sp.data.spells||sp.data;
     if(rl)DB.relics=rl.data.relics||rl.data;
     if(fc)setFactions(fc.data);
     relinkLifetime();ensureEchoes();
     lsSet(LS.db,DB);
-    return {spells:!!sp,relics:!!rl,factions:!!fc};
+    this.loadIcons().then(()=>render()).catch(e=>console.warn(e));
+    return {spells:!!sp,relics:!!rl,factions:!!fc,cards:!!cd};
   },
   async pullSave(force){
     const rem=await this.get("save.json");
@@ -1417,7 +1500,7 @@ const GH={
 /* ================================================================
    RENDER
    ================================================================ */
-const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["codex","Codex"],["ledger","Books"],["settings","Settings"]];
+const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["cards","Perk Cards"],["codex","Codex"],["ledger","Books"],["settings","Settings"]];
 function render(){renderStatus();renderTabs();const fn=VIEWS[UI.tab];$("#view").innerHTML=fn();if(UI.tab==="sea")bindMap()}
 function renderStatus(){
   if(!S)return;
@@ -1428,6 +1511,7 @@ function renderStatus(){
    <span class="pill">${loc}</span>
    <span class="pill" title="Business account">Business <b>${cr(S.credits)}</b></span>
    <span class="pill" title="Finn's own money">Wallet <b>${cr(S.wallet)}</b></span>
+   <span class="pill" title="Gem Dust — 10 buys a Perk Pack">Dust <b>${S.dust||0}</b></span>
    <span class="pill">Hold <b>${used(S.hold)}/${holdCap()}</b></span>
    <span class="pill">Storage <b>${used(S.storage)}/${storageCap()}</b></span>
    <span class="pill">Lives <b>${S.lives}/${livesCap()}</b></span>
@@ -1435,7 +1519,7 @@ function renderStatus(){
    <span class="pill sync" title="${esc(syncMsg)}"><span class="dot ${dot}"></span>${esc(GH.ready()?syncMsg:"Local only")}</span>`;
 }
 function renderTabs(){
-  const badge={orders:S.offers.length,finn:S.statPoints};
+  const badge={orders:S.offers.length,finn:S.statPoints,cards:(S.packs||[]).length};
   $("#tabs").innerHTML=TABS.map(([k,l])=>`<button class="${UI.tab===k?"on":""}" data-tab="${k}">${l}${badge[k]?`<span class="badge">${badge[k]}</span>`:""}</button>`).join("");
 }
 function dbBanner(){
@@ -1494,7 +1578,7 @@ function tagGuide(){
 function bindMap(){document.querySelectorAll(".node").forEach(g=>{const f=()=>{UI.selNode=g.dataset.node;render()};g.addEventListener("click",f);g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}})})}
 function itemRow(it,where){
   const sp=itemSpace(it);
-  if(it.kind==="geode")return `<tr><td>🪨 <b>${it.size} geode</b> <span class="muted tiny">${(it.tags||[]).length?"from "+(it.tags.includes("Fog Bank")?it.tags.map(()=>"?"):it.tags.map(t=>prank("sonar_sweep")?(t==="Wave-Touched"&&it.wave?`Wave-Touched (${it.wave})`:t):"?")).join(", "):""}</span></td><td>${sp}</td><td>up to ${GEODES[it.size].max} gem${GEODES[it.size].max>1?"s":""}</td>
+  if(it.kind==="geode")return `<tr><td>🪨 <b>${it.size} geode</b> <span class="muted tiny">${(it.tags||[]).length?"from "+(it.tags.includes("Fog Bank")?it.tags.map(()=>"?"):it.tags.map(t=>eff("sonarReveal")?(t==="Wave-Touched"&&it.wave?`Wave-Touched (${it.wave})`:t):"?")).join(", "):""}</span></td><td>${sp}</td><td>up to ${GEODES[it.size].max} gem${GEODES[it.size].max>1?"s":""}</td>
     <td class="row">${where==="storage"?`<button class="btn sm" data-act="chisel" data-id="${it.id}" ${atHome()?"":"disabled"}>Chisel (${fmtDur(GEODES[it.size].chisel)})</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
   return `<tr><td>🏺 <b>${esc(it.name)}</b> <span class="tag">${it.size}</span> <span class="tag">${it.condition}</span></td><td>${sp}</td><td>${it.sockets.length} sockets</td>
     <td class="row">${where==="storage"?`<button class="btn sm" data-tab="relics">Open</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
@@ -1549,7 +1633,7 @@ function gemRow(g){
   if(g.manaCharged)cut+=` <span class="tag" title="Its spell cut costs no Metered Mana">💧 Mana-Charged</span>`;
   const val=stoneValue(g);
   return `<tr><td>${gemDot(g.type)} <b>${g.type}</b></td><td>${rarTag(GEMS[g.type].r)}</td><td>${qTag(g.quality)}</td><td>${cut}</td><td>${cr(val)}${g.state==="accent"?` <span class="tiny muted">each</span>`:""}</td>
-   <td>${res}${g.state==="rough"&&!g.reserved?`<button class="btn sm" data-act="cutopen" data-id="${g.id}">Cut…</button>`:""}</td></tr>`;
+   <td class="row" style="gap:4px">${res}${g.state==="rough"&&!g.reserved?`<button class="btn sm" data-act="cutopen" data-id="${g.id}">Cut…</button>`:""}${g.state==="rough"&&!g.reserved&&g.quality==="Crude"?`<button class="btn sm ghost" data-act="grind" data-id="${g.id}" title="Grind into Gem Dust (15 min) instead of ${cr(gemValue(g.type,"Crude"))}">Grind → ${DUST_BY_RARITY[GEMS[g.type].r]} dust</button>`:""}</td></tr>`;
 }
 function cutPanel(){
   const g=S.gems.find(x=>x.id===UI.cutGem);if(!g||g.state!=="rough")return "";
@@ -1767,7 +1851,7 @@ VIEWS.factions=()=>`<p class="muted small">Dues are ${cr(cfg().registration)} + 
 /* ---------- FINN ---------- */
 VIEWS.finn=()=>{
   const need=xpToReach(S.level+1),combined=S.stats.insight+S.stats.precision+S.stats.renown;
-  const stat=(k,label,gov)=>`<div class="statbox"><div class="muted small">${label}</div><div class="n">${S.stats[k]}</div><div class="tiny">${growthTier(S.stats[k])}</div>
+  const stat=(k,label,gov)=>`<div class="statbox"><div class="muted small">${label}</div><div class="n">${S.stats[k]}</div><div class="tiny">${growthTier(S.stats[k])} · ${statUsed(k)}/${S.stats[k]} card points</div>
    <div class="tiny muted" style="margin:4px 0">${gov}</div>${S.statPoints?`<button class="btn sm" data-act="stat" data-k="${k}">+1</button>`:""}</div>`;
   return `<div class="grid g2"><div class="grid">
    <div class="panel"><h3>Finley Zora Anderson <span class="meta">Concept of Treasure</span></h3>
@@ -1776,11 +1860,9 @@ VIEWS.finn=()=>{
     ${S.statPoints?`<div class="banner">${S.statPoints} stat point${S.statPoints>1?"s":""} to spend.</div>`:""}
     <div class="grid g3">${stat("insight","Insight","Dredging, nodes, finds, gem rolls")}${stat("precision","Precision","Cutting, spell levels, Quality, the Bath")}${stat("renown","Renown","Factions, Reputation, commissions, prices")}</div>
    </div>
-   <div class="panel"><h3>Perks</h3><div class="tscroll"><table><tr><th>Perk</th><th>Needs</th><th>Rank</th><th>Effect per rank</th><th></th></tr>
-    ${PERKS.map(p=>{const pc=cfg().perks[p.id],r=prank(p.id),un=S.stats[p.stat]>=pc.t,max=r>=pc.max;
-      return `<tr><td><b>${p.name}</b></td><td class="small">${p.stat[0].toUpperCase()+p.stat.slice(1)} ${pc.t}</td><td>${r}/${pc.max}</td><td class="small">${p.effect}</td>
-       <td>${max?`<span class="tag ok">max</span>`:`<button class="btn sm" data-act="perk" data-id="${p.id}" ${un?"":"disabled"}>${un?`Rank ${r+1} — ${cr(perkCost(p,r+1))}`:"Locked"}</button>`}</td></tr>`}).join("")}</table></div>
-    <p class="tiny muted">Thresholds and max ranks are placeholders until they're set in the doc — edit them in Settings.</p></div>
+   <div class="panel"><h3>Loadout <span class="meta"><a href="#" data-tab="cards">Perk Cards</a></span></h3>
+    ${equippedList().length?`<table>${equippedList().map(([d,c])=>`<tr><td><b>${esc(d.name)}</b> <span class="tiny muted">rank ${c.equip}</span></td><td class="small">${esc(effectLine(d,c.equip))}</td></tr>`).join("")}</table>`:`<p class="empty">Nothing equipped.</p>`}
+    ${(S.packs||[]).length?`<p class="small"><b>${S.packs.length}</b> unopened pack${S.packs.length>1?"s":""} waiting.</p>`:""}</div>
   </div><div class="grid">
    <div class="panel"><h3>Lives</h3><div class="row between"><span style="font-size:1.6rem">${"♥".repeat(S.lives)}<span class="muted">${"♡".repeat(Math.max(0,livesCap()-S.lives))}</span></span><span class="small muted">${S.lives}/${livesCap()}</span></div>
     <p class="small muted">+1 life on the 1st of each month (lost if at the cap). Life &amp; Care sells lives at ${cr(cfg().lifeCost)}, paid from her own wallet (${cr(S.wallet)}).</p>
@@ -1815,6 +1897,16 @@ function dbProblems(){
       if(k.echo){const sp=DB.spells.find(x=>x.name===k.echo);
         if(!sp)out.push([w,`socket ${j+1} echoes "${k.echo}", which isn't in the spell database`]);
         else if(sp.school!==k.school||sp.level!==k.level)out.push([w,`socket ${j+1} echoes ${k.echo}, but that's a ${sp.level?ordinal(sp.level)+"-level":"cantrip"} ${sp.school} spell, not ${k.level?ordinal(k.level)+"-level":"cantrip"} ${k.school}`])}})});
+  const cids=new Set();
+  (DB.cards||[]).forEach((c,i)=>{const w=`Card ${c.id||"#"+(i+1)} (${c.name||"no name"})`;
+    if(!c.id)out.push([w,"has no id"]);else if(cids.has(c.id))out.push([w,"shares its id with another card"]);cids.add(c.id);
+    if(!c.name)out.push([w,"has no name"]);
+    const st=c.stats||[];if(!st.length||st.length>2||st.some(x=>!STATS.includes(x)))out.push([w,`stats must be one or two of insight, precision, renown`]);
+    if(!CARD_RARITY_ODDS[c.rarity])out.push([w,`rarity "${c.rarity}" should be Common, Uncommon or Rare`]);
+    if(!c.effect||!EFFECT_TEXT[c.effect.type])out.push([w,`effect type "${c.effect&&c.effect.type}" isn't one the page knows (${Object.keys(EFFECT_TEXT).join(", ")})`]);
+    if(c.signature&&(c.maxRank||1)!==1)out.push([w,"signature cards max at rank 1"]);
+    if(!(c.maxRank>=1))out.push([w,"needs a maxRank of 1 or more"]);
+    if(c.icon&&(DB.iconMissing||[]).includes(c.icon))out.push([w,`icon "${c.icon}" wasn't found in card-icons/`])});
   if(DB.factions){
     const planes=new Set(DB.planes||[]);
     for(const [k,f] of Object.entries(DB.factions)){
@@ -1872,10 +1964,57 @@ VIEWS.codex=()=>{
          return `<tr><td><b>${esc(p.name)}</b>${p.title?`<div class="tiny muted">${esc(p.title)}</div>`:""}</td><td class="small">${org?esc(org.name):`<span class="muted">independent</span>`}</td><td class="small">${esc(((p.planes&&p.planes.length)?p.planes:(org?org.planes:[])).join(", "))}</td></tr>`}).join("")}</table>`:`<div class="empty">None yet.</div>`}</div>`}).join("")}</div>`;
   }
   return `${tabs}<div class="panel"><h3>Database check</h3>
-   <p class="small muted">Checks spells.json, relics.json and factions.json for mistakes that would break the tool — unknown schools, out-of-range values, duplicate ids, and relic sockets no spell can fill.</p>
+   <p class="small muted">Checks spells.json, relics.json, factions.json and cards.json for mistakes that would break the tool — unknown schools, out-of-range values, duplicate ids, and relic sockets no spell can fill.</p>
    ${probs.length?`<table>${probs.map(([w,m])=>`<tr><td><b>${esc(w)}</b></td><td>${esc(m)}</td></tr>`).join("")}</table>`:`<p><span class="tag ok">All clear</span> ${DB.spells.length} spells, ${DB.relics.length} relics${DB.factions?", factions file":""} look good.</p>`}</div>`;
 };
 
+/* ---------- PERK CARDS ---------- */
+function equippedList(){return Object.entries(S.cards||{}).map(([id,c])=>[cardDef(id),c]).filter(([d,c])=>d&&c.equip>0)}
+function cardFace(d,c,opts={}){
+  const st=(d.stats||[]).map(x=>STAT_NAME[x]).join(" + ");
+  const rk=c?(d.signature?"Signature":`Rank ${c.rank}/${c.max}`):`Max rank ${d.maxRank}`;
+  const pips=c&&!d.signature?`<div class="pips">${Array.from({length:c.max},(_,i)=>`<i class="${i<c.rank?"on":""} ${i<c.equip?"eq":""}"></i>`).join("")}</div>`:"";
+  const lineNow=c&&c.equip?`<div class="small"><b>${d.signature?"Active":"Now:"}</b>${d.signature?"":" "+esc(effectLine(d,c.equip))}</div>`:"";
+  return `<div class="pcard st-${(d.stats||["insight"])[0]} ${d.signature?"sig":""} ${c&&c.equip?"equipped":""}">
+    <div class="pc-name"><span>${esc(d.name)}</span><span class="tag tier-${d.rarity}">${d.rarity}${d.signature?" · signature":""}</span></div>
+    <div class="pc-art"><img src="${iconSrc(d)}" alt=""></div>
+    <div class="pc-type">${st} card · ${rk}${d.signature?` · costs ${d.cost||2}`:""}</div>
+    <div class="pc-text"><div class="small">${esc(effectLine(d))}</div>${lineNow}${d.flavor?`<div class="pc-flavor">${esc(d.flavor)}</div>`:""}</div>
+    ${pips}${opts.foot||""}</div>`;
+}
+VIEWS.cards=()=>{
+  const owned=Object.keys(S.cards||{}).filter(cardDef),all=DB.cards||[],home=atHome(),packs=S.packs||[];
+  if(!all.length)return `<div class="panel empty">No cards.json loaded — add it to your data repo (or load it in Settings).</div>`;
+  const cap=STATS.map(st=>{const u=statUsed(st),c=S.stats[st];return `<div class="statbox"><div class="muted small">${STAT_NAME[st]}</div><div class="n">${u}<span class="muted" style="font-size:1.2rem">/${c}</span></div><div class="bar" style="margin-top:6px"><i style="width:${c?Math.min(100,u/c*100):0}%"></i></div></div>`}).join("");
+  const draw=S.lastDraw&&S.lastDraw.length?`<div class="panel" style="margin-bottom:14px"><h3>You drew <span class="meta"><a href="#" data-act="cleardraw">dismiss</a></span></h3>
+    <div class="cardgrid">${S.lastDraw.map(o=>{const d=cardDef(o.id);return d?cardFace(d,S.cards[o.id],{foot:`<div class="pc-foot"><span class="tag ${o.result==="new"?"ok":o.result==="rankup"?"res":"warn"}">${o.result==="new"?"New card!":o.result==="rankup"?`Ranked up → ${o.rank}`:`Max rank — +${DUP_REFUND} Gem Dust`}</span></div>`}):""}).join("")}</div></div>`:"";
+  const sorted=all.slice().sort((a,b)=>STATS.indexOf(a.stats[0])-STATS.indexOf(b.stats[0])||Object.keys(CARD_RARITY_ODDS).indexOf(a.rarity)-Object.keys(CARD_RARITY_ODDS).indexOf(b.rarity)||a.name.localeCompare(b.name));
+  const grid=sorted.map(d=>{const c=S.cards[d.id];
+    if(!c)return `<div class="pcard unknown"><div class="pc-name"><span>????</span><span class="tag tier-${d.rarity}">${d.rarity}</span></div><div class="pc-art"><img src="${PLACEHOLDER_ICON}" alt=""></div><div class="pc-type">${(d.stats||[]).map(x=>STAT_NAME[x]).join(" + ")} card</div><div class="pc-text"><div class="small muted">Not drawn yet.</div></div></div>`;
+    const opts=d.signature?[[0,"Unequipped"],[1,"Equipped"]]:[[0,"Unequipped"],...Array.from({length:c.rank},(_,i)=>[i+1,`Rank ${i+1} (${cardCost(d,i+1)} pt${cardCost(d,i+1)>1?"s":""})`])];
+    const canRecut=!d.signature&&!d.fixedMax&&c.rank>=c.max;
+    return cardFace(d,c,{foot:`<div class="pc-foot row"><select data-equip="${d.id}" ${home?"":"disabled"} aria-label="Equip ${esc(d.name)}">${opts.map(([v,l])=>`<option value="${v}" ${c.equip===v?"selected":""}>${l}</option>`).join("")}</select>
+      ${canRecut?`<button class="btn sm brass" data-act="recut" data-id="${d.id}">Recut — ${cr(500*c.max)}</button>`:""}${d.fixedMax&&c.rank>=c.max?`<span class="tiny muted">max (fixed)</span>`:""}</div>`})}).join("");
+  return `<div class="grid g2" style="margin-bottom:14px">
+    <div class="panel"><h3>Loadout <span class="meta">${home?"swap freely at home":"locked — out on the trawler"}</span></h3>
+     <div class="grid g3">${cap}</div><p class="tiny muted" style="margin-top:8px">A card costs points in its Stat equal to the rank you equip it at (hybrids cost that much in each Stat; signature cards cost a flat amount). You can equip any rank up to the one you own.</p></div>
+    <div class="panel"><h3>Gem Dust &amp; Perk Packs <span class="meta">${S.dust||0} dust</span></h3>
+     <p class="small">Grind rough Crude gems in the Workroom (15 min): Common 1, Uncommon 2, Rare 5, Mythic Rare 10. A pack costs ${PERK_PACK_COST} dust and holds 1 card (Common 60% · Uncommon 30% · Rare 10%). A duplicate ranks a card up; at max rank it refunds ${DUP_REFUND} dust.</p>
+     <div class="row">${packs.map((pk,i)=>`<button class="btn" data-act="openpack" data-i="${i}">Open ${pk.kind==="starter"?"starter pack (3 cards)":pk.kind==="level"?`Level ${pk.level} pack`:"Perk Pack"}</button>`).join("")}
+      <button class="btn brass" data-act="buypack" ${(S.dust||0)>=PERK_PACK_COST?"":"disabled"}>Buy a pack — ${PERK_PACK_COST} dust</button></div></div></div>
+   ${draw}
+   <div class="row between" style="margin-bottom:8px"><h2>Collection <span class="muted small">${owned.length} of ${all.length} cards</span></h2></div>
+   <div class="cardgrid">${grid}</div>`;
+};
+VIEWS.credits=()=>`<div class="panel"><h3>Credits &amp; licenses</h3>
+  <h4 style="margin-top:8px">Spells</h4>
+  <p class="small">Spell names come from <i>Dungeons &amp; Dragons</i> 5th Edition by Wizards of the Coast. This work includes material taken from the System Reference Document 5.1 (&ldquo;SRD 5.1&rdquo;) by Wizards of the Coast LLC, available at <a href="https://dnd.wizards.com/resources/systems-reference-document" target="_blank" rel="noopener">dnd.wizards.com</a>. The SRD 5.1 is licensed under the <a href="https://creativecommons.org/licenses/by/4.0/legalcode" target="_blank" rel="noopener">Creative Commons Attribution 4.0 International License</a>. A few spell names outside the SRD remain the property of Wizards of the Coast. This is unofficial fan content, not approved or endorsed by Wizards of the Coast.</p>
+  <h4 style="margin-top:12px">Seal &amp; favicon</h4>
+  <p class="small">Whale Shark icon by T. Kiefer Robertson from <a href="https://thenounproject.com" target="_blank" rel="noopener">the Noun Project</a> (CC BY 3.0).</p>
+  <h4 style="margin-top:12px">Card icons</h4>
+  ${(DB.cardCredits||[]).length?`<ul class="small">${DB.cardCredits.map(c=>`<li>${typeof c==="string"?esc(c):`${esc(c.text||"")}${c.url?` — <a href="${esc(c.url)}" target="_blank" rel="noopener">${esc(c.url)}</a>`:""}`}</li>`).join("")}</ul>`:`<p class="small muted">No icon credits listed yet. Add them to the "credits" list in cards.json.</p>`}
+  <h4 style="margin-top:12px">Fonts</h4>
+  <p class="small">Cormorant Garamond and Source Sans 3, via Google Fonts, under the SIL Open Font License.</p></div>`;
 /* ---------- SNAPSHOT ---------- */
 function reqPlain(s){
   const r=s.req,sp=x=>`${x.name} (${x.level?ordinal(x.level)+"-level":"cantrip"} ${x.school}, ${SCHOOL_SHAPE[x.school]} cut${x.level?", "+facets(x.level)+" facets":""})`;
@@ -1902,8 +2041,8 @@ function snapshotMD(){
   P("");P(`## Finn`);
   P(`Level ${S.level} (${S.xp}/${xpToReach(S.level+1)} XP) · Combined Level ${combined}${S.statPoints?` · ${S.statPoints} unspent stat point${S.statPoints>1?"s":""}`:""}`);
   P(`- Insight ${st.insight} (${growthTier(st.insight)})`);P(`- Precision ${st.precision} (${growthTier(st.precision)})`);P(`- Renown ${st.renown} (${growthTier(st.renown)})`);
-  const perks=PERKS.filter(p=>prank(p.id)).map(p=>`${p.name} ${prank(p.id)}/${cfg().perks[p.id].max}`);
-  P(`- Perks: ${perks.length?perks.join(", "):"none yet"}`);
+  const eq=equippedList().map(([d,c])=>`${d.name} (rank ${c.equip}: ${effectLine(d,c.equip)})`);
+  P(`- Perk Card loadout: ${eq.length?eq.join("; "):"nothing equipped"} · ${Object.keys(S.cards||{}).length} cards owned · ${S.dust||0} Gem Dust${(S.packs||[]).length?` · ${S.packs.length} unopened pack${S.packs.length>1?"s":""}`:""}`);
   const unl=SCHOOLS.filter(x=>!S.patterns[x]);
   P(`- Can spell-cut up to ${ordinal(maxSpellLevel())} level${unl.length?`; patterns not learned: ${unl.join(", ")}`:"; all eight school patterns learned"}`);
   {const p=P_();P("");P(`## Partnership with Emma Frost`);
@@ -2055,6 +2194,7 @@ function dayMD(dn){
     ...by("bid").map(e=>`New Salon bid on ${e.name}: ${cr(e.bid)} (+${cr(e.inc)})`),
     ...by("relicSold").map(e=>e.via==="Salon"?`${e.name} sold at the Salon for ${cr(e.gross)} (${e.pct}% of Appraised Value), ${cr(e.net)} after the house fee and Salvage Royalty`:`Sold ${e.name} (${e.size}, ${e.condition}) to the Survey: ${cr(e.gross)}, ${cr(e.net)} after the Salvage Royalty`),
     ...by("standing").map(e=>`Survey Standing reached Level ${e.level}`)]);
+  sec("Perk Cards",[...by("grind").map(e=>`Ground a Crude ${e.gem} into ${e.dust} Gem Dust`),...by("pack").map(e=>`Opened a ${e.kind==="starter"?"starter pack":"Perk Pack"}: ${e.cards.join(", ")}`),...by("recut").map(e=>`Recut ${e.name} to max rank ${e.max} (${cr(e.cost)})`)]);
   sec("Payroll",by("salary").map(e=>`Paid ${e.name} ${cr(e.paid)}${e.owed>0?` (${cr(e.owed)} still owed)`:""}`));
   sec("Progress",[...by("level").map(e=>`Reached Level ${e.level}`),...by("rep").map(e=>`Reputation with ${fac(e.faction)} reached Level ${e.level}`)]);
   if(M.length){const inc=M.filter(l=>l.cat==="income"||(!l.cat&&l.amt>0)).reduce((a,l)=>a+l.amt,0),cost=M.filter(l=>l.cat==="cost"||(!l.cat&&l.amt<0)).reduce((a,l)=>a-l.amt,0);
@@ -2090,12 +2230,12 @@ VIEWS.settings=()=>{
     </div>
     <div class="row" style="margin-top:10px"><button class="btn" data-act="ghconnect">Save &amp; connect</button><button class="btn ghost" data-act="ghpush" ${GH.ready()?"":"disabled"}>Save to GitHub now</button><button class="btn ghost" data-act="ghpull" ${GH.ready()?"":"disabled"}>Load save from GitHub</button><button class="btn ghost" data-act="ghforget">Forget token</button></div>
     <p class="small" style="margin-top:8px"><span class="dot ${({ok:"ok",dirty:"dirty",err:"err",off:"off",busy:"dirty"})[syncState]}"></span> ${esc(syncMsg)}</p>
-    <p class="small muted">Databases loaded: ${DB.spells.length} spells, ${DB.relics.length} relics, ${DB.factions?Object.values(DB.factions).reduce((a,f)=>a+(f.organizations||[]).length+(f.people||[]).length,0)+" clients":"no factions file"}.</p>
+    <p class="small muted">Databases loaded: ${DB.spells.length} spells, ${DB.relics.length} relics, ${(DB.cards||[]).length} cards (${Object.keys(ICONS).length} icons), ${DB.factions?Object.values(DB.factions).reduce((a,f)=>a+(f.organizations||[]).length+(f.people||[]).length,0)+" clients":"no factions file"}.</p>
    </div>
    <div class="panel"><h3>Files</h3>
     <div class="row"><button class="btn ghost" data-act="export">Download save.json</button><label class="btn ghost">Import save<input type="file" accept=".json" id="impSave" hidden></label></div>
     <p class="small muted" style="margin-top:8px">Offline? Load the databases from files instead:</p>
-    <div class="row"><label class="btn ghost">Load spells.json<input type="file" accept=".json" id="impSpells" hidden></label><label class="btn ghost">Load relics.json<input type="file" accept=".json" id="impRelics" hidden></label><label class="btn ghost">Load factions.json<input type="file" accept=".json" id="impFactions" hidden></label></div>
+    <div class="row"><label class="btn ghost">Load spells.json<input type="file" accept=".json" id="impSpells" hidden></label><label class="btn ghost">Load relics.json<input type="file" accept=".json" id="impRelics" hidden></label><label class="btn ghost">Load factions.json<input type="file" accept=".json" id="impFactions" hidden></label><label class="btn ghost">Load cards.json<input type="file" accept=".json" id="impCards" hidden></label><label class="btn ghost">Load card icons<input type="file" accept=".svg,.png,.jpg,.jpeg,.webp" id="impIcons" multiple hidden></label></div>
     <hr class="rule"><div class="row"><button class="btn sm ghost" data-act="theme">Theme: ${document.documentElement.dataset.theme||"auto"}</button><button class="btn sm ghost" data-act="credits">Set business Credits…</button><button class="btn sm ghost" data-act="setwallet">Set wallet…</button><button class="btn sm danger" data-act="newgame">New game…</button></div>
     ${UI.newGame?`<div class="slot" style="margin-top:10px;border-color:var(--bad)"><div class="lbl">New game</div>
      <p class="small" style="margin:4px 0 8px">When did Finn's Facets &amp; Finds open? The save starts that morning at 7:00 AM with 1,000 Cr, and Emma's partnership begins the same day. Your current save is replaced — download it first if you want a copy.</p>
@@ -2107,8 +2247,6 @@ VIEWS.settings=()=>{
     <p class="small muted">Numbers from the docs are the defaults. Ones marked * are open threads in the docs, picked so the tool runs — change them freely.</p>
     <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Base dues / month")}${num("duesPerLevel","+ dues per Rep Level")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}${num("levyPct","Trade Levy %")}${num("royaltyPct","Salvage Royalty %")}${num("permit","Permit / year")}${num("upkeep","Boat upkeep / month")}${num("surveyBonusPct","Survey bonus % per Standing")}${num("salonFeePct","Salon house fee %")}</div>
     <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("relicPlanar","+ Planar Seam %")}${num("resonantPct","Resonant socket %")}${num("fullResonancePct","Full Resonance %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
-    <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
-    <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
     <hr class="rule"><h4>Gem base prices</h4><p class="tiny muted">From the doc's Gem Catalogue. One number per gem, inside its rarity's range.</p>
     <div class="row">${Object.keys(GEMS).map(g=>`<label class="f">${gemDot(g)} ${g}<input type="number" data-gemprice="${g}" value="${C.gemPrices[g]}" style="width:75px"></label>`).join("")}</div>
    </div></div></div>`;
@@ -2143,7 +2281,9 @@ document.addEventListener("click",e=>{
    case"buymount":orderMounting(UI.hmBase||"Ring",Math.min(Math.max(UI.hmSlots||BASES[UI.hmBase||"Ring"].min,BASES[UI.hmBase||"Ring"].min),BASES[UI.hmBase||"Ring"].max),UI.hmMetal||"Silver");break;
    case"buyorn":orderOrnament(t.dataset.name);break;
    case"reg":register(t.dataset.k);break;
-   case"stat":addStat(t.dataset.k);break; case"perk":buyPerk(id);break;
+   case"stat":addStat(t.dataset.k);break;
+   case"grind":grindGem(id);break; case"buypack":buyPack();break; case"openpack":openPack(+t.dataset.i);break;
+   case"recut":recutCard(id);break; case"cleardraw":S.lastDraw=null;commit();break;
    case"buylife":buyLife();break; case"die":spendLife();break;
    case"ghconnect":ghConnect();break; case"ghpush":GH.pushSave();break;
    case"ghpull":GH.pullSave(true).then(r=>{toast(r==="none"?"No save.json in the repo yet.":"Loaded the save from GitHub.");render()}).catch(err=>toast(err.message));break;
@@ -2178,7 +2318,7 @@ document.addEventListener("change",e=>{
   if(t.dataset.sock){socketGem(t.dataset.sock,+t.dataset.i,t.value||null);return}
   if(t.dataset.pattern){S.patterns[t.dataset.pattern]=t.checked;commit();return}
   if(t.dataset.cfg){S.config[t.dataset.cfg]=+t.value;commit();return}
-  if(t.dataset.perk){S.config.perks[t.dataset.perk][t.dataset.f]=+t.value;commit();return}
+  if(t.dataset.equip){equipCard(t.dataset.equip,+t.value);return}
   if(t.dataset.gemprice){S.config.gemPrices[t.dataset.gemprice]=+t.value;commit();return}
   if(t.dataset.cx){UI[t.dataset.cx]=t.value;render();return}
   if(t.dataset.pay){const r=(S.payroll||[]).find(x=>x.id===t.dataset.pay),f=t.dataset.f;if(!r)return;
@@ -2193,12 +2333,14 @@ document.addEventListener("change",e=>{
   if(t.id==="hmBase"){UI.hmBase=t.value;UI.hmSlots=BASES[t.value].min;render();return}
   if(t.id==="hmSlots"){UI.hmSlots=+t.value;render();return}
   if(t.id==="hmMetal"){UI.hmMetal=t.value;render();return}
-  if(t.id==="impSave"||t.id==="impSpells"||t.id==="impRelics"||t.id==="impFactions"){
+  if(t.id==="impIcons"){const fs=[...t.files];Promise.all(fs.map(f=>new Promise(res=>{const rd=new FileReader();rd.onload=()=>{ICONS[f.name]=rd.result;res()};rd.readAsDataURL(f)}))).then(()=>{lsSet("fff.icons",ICONS);toast(`${fs.length} card icon${fs.length>1?"s":""} loaded.`);render()});return}
+  if(t.id==="impSave"||t.id==="impSpells"||t.id==="impRelics"||t.id==="impFactions"||t.id==="impCards"){
     const file=t.files[0];if(!file)return;file.text().then(txt=>{
       try{const j=JSON.parse(txt);
         if(t.id==="impSave"){S=migrate(j);lsSet(LS.dirty,true);commit();toast("Save imported.")}
         else if(t.id==="impSpells"){DB.spells=j.spells||j;ensureEchoes();lsSet(LS.db,DB);toast(`${DB.spells.length} spells loaded.`);render()}
         else if(t.id==="impFactions"){setFactions(j);lsSet(LS.db,DB);toast("Factions loaded.");render()}
+        else if(t.id==="impCards"){setCards(j);lsSet(LS.db,DB);toast(`${DB.cards.length} cards loaded.`);render()}
         else{DB.relics=j.relics||j;relinkLifetime();ensureEchoes();lsSet(LS.db,DB);toast(`${DB.relics.length} relics loaded.`);render()}
       }catch(err){toast("That file isn't valid JSON.")}});
   }
@@ -2216,7 +2358,7 @@ async function ghConnect(){
     const r=await GH.pullSave(false);
     if(r==="none"){await GH.pushSave()}
     else{syncState=lsGet(LS.dirty,false)?"dirty":"ok";syncMsg=r==="loaded"?"Loaded save from GitHub":"Connected — this browser's save kept"}
-    toast(`Connected. ${DB.spells.length} spells, ${DB.relics.length} relics${got.spells&&got.relics&&got.factions?"":" (a database file is missing from the repo)"}.`);
+    toast(`Connected. ${DB.spells.length} spells, ${DB.relics.length} relics${got.spells&&got.relics&&got.factions&&got.cards?"":" (a database file is missing from the repo)"}.`);
   }catch(err){syncState="err";syncMsg=err.message}
   render();
 }
@@ -2226,7 +2368,7 @@ async function ghConnect(){
    ================================================================ */
 (async function boot(){
   const th=lsGet("fff.theme","auto");if(th!=="auto")document.documentElement.dataset.theme=th;
-  DB=lsGet(LS.db,{spells:[],relics:[]});
+  DB=Object.assign({spells:[],relics:[],cards:[],cardCredits:[]},lsGet(LS.db,{}));ICONS=lsGet("fff.icons",{});
   const local=lsGet(LS.save,null);
   if(local)S=migrate(local);else newGame();
   relinkLifetime();ensureEchoes();
