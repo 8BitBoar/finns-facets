@@ -99,6 +99,8 @@ th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 .tag.q-Fine{background:#d9ebe4;color:#1f5a4d;border-color:#a8cfc2}
 .tag.q-Perfect{background:#f6e6b0;color:#6b5108;border-color:#d8bd62}
 .tag.r-Common{color:#5f6461}.tag.r-Uncommon{color:#2f7d4f}.tag.r-Rare{color:#2b5fa0}.tag.r-Mythic{color:#a0402b}
+.tag.tier-Uncommon{color:#2f7d4f}.tag.tier-Rare{color:#2b5fa0;border-color:#9fb7d8}.tag.tier-Legendary{color:#7a5410;background:#f6e6b0;border-color:#d8bd62}
+.tag.res{background:#efe1f6;color:#5b2e7a;border-color:#cdb0e0}
 .tag.urgent{background:#f6d7cf;color:#8c2f1e;border-color:#e2a593}
 .tag.ok{background:#d6ecdc;color:#1f6138;border-color:#9fcfae}
 .tag.no{background:#f3dcd6;color:#8c2f1e;border-color:#e2b0a2}
@@ -224,8 +226,41 @@ const OLD_GEM_PRICES={"Clear quartz":10,"Rose quartz":12,"Citrine":15,"Onyx":18,
 const QUALITIES=["Crude","Fine","Perfect"];
 const QUALITY={Crude:{odds:70,mod:1},Fine:{odds:25,mod:1.5},Perfect:{odds:5,mod:2.5}};
 const PLAIN_CUTS=["Round Brilliant","Oval","Cushion","Princess","Radiant","Pear","Marquise","Heart","Trillion","Emerald","Asscher","Baguette","Rose","Briolette","Cabochon"];
-const TAGS={Shallows:{fee:0,lean:"Mostly Common gems, small geodes"},Reef:{fee:2,lean:"Sea-touched gems: aquamarine, moonstone, opal"},Wreck:{fee:3,lean:"Higher relic chance; better relic condition"},Rich:{fee:3,lean:"+2 dredge attempts"},Ruins:{fee:4,lean:"Higher relic chance, bigger relics; better condition"},Vent:{fee:4,lean:"Fiery gems: ruby, garnet, topaz"},Deep:{fee:5,lean:"Better odds at Rare and Mythic Rare"},Trench:{fee:5,lean:"Bigger geodes (Melon, Boulder)"}};
-const TAG_ICON={Shallows:"≈",Reef:"✿",Wreck:"⚓",Rich:"✦",Ruins:"⌂",Vent:"♨",Deep:"▼",Trench:"⇊"};
+const TAGS={
+ Shallows:{tier:"Common",fee:0,icon:"≈",lean:"Mostly Common gems, small geodes"},
+ Reef:{tier:"Common",fee:2,icon:"✿",lean:"Sea-touched gems: aquamarine, moonstone, opal"},
+ Wreck:{tier:"Common",fee:3,icon:"⚓",lean:"Higher relic chance (+2%); better relic condition"},
+ Rich:{tier:"Common",fee:3,icon:"✦",lean:"+2 dredge attempts"},
+ Ruins:{tier:"Common",fee:4,icon:"⌂",lean:"Higher relic chance (+2%), bigger relics; better condition"},
+ Vent:{tier:"Common",fee:4,icon:"♨",lean:"Fiery gems: ruby, garnet, topaz"},
+ Deep:{tier:"Common",fee:5,icon:"▼",lean:"Gem rarity: Common −15, Rare +8, Mythic Rare +7"},
+ Trench:{tier:"Common",fee:5,icon:"⇊",lean:"Bigger geodes (Melon, Boulder)"},
+ "Shark Run":{tier:"Uncommon",fee:2,icon:"🦈",lean:"+1 attempt; the first geode is at least Fist size"},
+ Glimmer:{tier:"Uncommon",fee:3,icon:"✧",lean:"Better Quality: Fine and Perfect each +5%"},
+ "Kelp Forest":{tier:"Uncommon",fee:2,icon:"🌿",lean:"+2 attempts, geodes capped at Fist size"},
+ "Storm Front":{tier:"Uncommon",fee:4,icon:"⛈",lean:"+10 min per attempt; gem rarity: Common −5, Rare +2, Mythic Rare +3"},
+ "Coin Scatter":{tier:"Uncommon",fee:2,icon:"◎",lean:"Each attempt: 20% chance of 1–10 Cr in loose coins"},
+ "Fog Bank":{tier:"Uncommon",fee:1,icon:"☁",lean:"All tags stay hidden, even with Sonar Sweep"},
+ "Mana Seep":{tier:"Rare",fee:5,icon:"💧",lean:"Gems are Mana-Charged: their spell cut costs no Metered Mana"},
+ "Planar Seam":{tier:"Rare",fee:6,icon:"⧉",lean:"Relic chance +2%; relics have +50% base value"},
+ Echoing:{tier:"Rare",fee:3,icon:"↻",lean:"Respawns once the next day after it fades"},
+ "Wave-Touched":{tier:"Rare",fee:0,icon:"🌊",lean:"One of her sisters is playing here"},
+ "Rán's Net":{tier:"Legendary",fee:0,icon:"✪",lean:"First geode has a Rare or better gem; Perfect odds doubled for every gem"},
+};
+const TAG_ICON=Object.fromEntries(Object.entries(TAGS).map(([k,v])=>[k,v.icon]));
+const TAG_TIERS={Common:70,Uncommon:22,Rare:7,Legendary:1};
+const SISTERS={
+ "Himinglæva":"Reflection: the first geode comes up with a twin of the same size",
+ "Dúfa":"Double attempts; Quality rolls wild (Crude 80%, Perfect 20%, no Fine)",
+ "Blóðughadda":"Red Tide: gems lean hard toward Ruby, Garnet and Topaz; one attempt lost to arguing",
+ "Hefring":"Rising Tide: geodes one size larger (max Boulder); +50% dredging XP",
+ "Uðr":"Gossip: +10 min per attempt; tomorrow one registered faction is guaranteed to send a commission",
+ "Hrönn":"Safe Harbor: relics can't roll Damaged; the trip out to her next node is free",
+ "Bylgja":"Party Wave: +1 attempt, 30% chance of 5–15 Cr per attempt; the drinking contest jumps the clock 2 hours on arrival",
+ "Dröfn":"Foam Lace: the first gem found is upgraded one Quality step",
+ "Kólga":"Dead Calm: travel time halved, tag surcharges halved (rounded down), −5 min per attempt",
+};
+const RARITY_SHIFT={Deep:[-15,0,8,7],"Storm Front":[-5,0,2,3],Shallows:[15,-5,-7,-3]}; // Common, Uncommon, Rare, Mythic Rare
 const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
 const RELIC_SIZES={Small:{space:4,crate:10,standing:1,auction:4},Medium:{space:6,crate:15,standing:2,auction:5},Large:{space:8,crate:20,standing:3,auction:6},Monumental:{space:12,crate:30,standing:5,auction:7}};
 const OLD_RELIC_RANGES={Small:[100,200],Medium:[250,400],Large:[500,800],Monumental:[1000,1500]};
@@ -310,7 +345,7 @@ const DEFAULT_CONFIG={
  startCredits:1000, livesCap:3, lifeCost:2500,
  commissionCap:3, registration:20, referral:5, fee:25, urgentPct:50, urgentChance:15,
  relicBase:1, relicWreck:2, relicRuins:2, condShift:10, crackChance:10,
- levyPct:5, royaltyPct:10, permit:100, upkeep:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5,
+ levyPct:5, royaltyPct:10, permit:100, upkeep:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5, relicPlanar:2, resonantPct:2, fullResonancePct:5,
  spellLevelBase:1, precisionPerSpellLevel:2,
  gemPrices:{...DEFAULT_GEM_PRICES},
  perks:{bigger_hold:{t:3,max:5},better_rig:{t:5,max:3},node_sense:{t:8,max:3},efficient_engine:{t:2,max:4},sonar_sweep:{t:4,max:2},expanded_storage:{t:3,max:5}},
@@ -369,7 +404,7 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:7, meta:{savedAt:Date.now(),created:Date.now()},
+    version:8, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
@@ -430,6 +465,11 @@ function migrate(s){
     if(s.partner){s.partner.cur.salaries=s.partner.cur.salaries||0;delete s.partner.draw}
     s.survey=s.survey||{points:0,month:null,sold:0};s.auctions=s.auctions||[];
     s.version=7;
+  }
+  if(s.version<8){
+    s.config.relicPlanar=s.config.relicPlanar??2;s.config.resonantPct=s.config.resonantPct??2;s.config.fullResonancePct=s.config.fullResonancePct??5;
+    s.echoQueue=s.echoQueue||[];for(const n of s.nodes||[]){if(n.arrived===undefined)n.arrived=true;if(n.firstGeode===undefined)n.firstGeode=true}
+    s.version=8;
   }
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
@@ -519,6 +559,12 @@ function walletToBiz(){
   if(v>S.wallet+1e-9){toast("Not enough in her wallet.");return}
   S.wallet=r2(S.wallet-v);walletLog(-v,"Owner contribution to the business");money(v,"Owner contribution from Finn","none");commit();
 }
+function ensureEchoes(){ // relics found before Resonance get their echoes rolled once
+  if(!S||!DB.spells.length)return;
+  for(const it of [...S.hold,...S.storage])if(it.kind==="relic")for(const s of it.sockets)if(s.echo===undefined){
+    const def=(DB.relics.find(r=>r.id===it.relicId)||{sockets:[]}).sockets.find(k=>k.school===s.school&&k.level===s.level&&k.echo);
+    s.echo=def?def.echo:rollEcho(s.school,s.level)}
+}
 function relinkLifetime(){ // history saved before the relic DB loaded is keyed by name; move it to the relic's id
   if(!S||!S.lifetime||!DB.relics.length)return;const L=S.lifetime;
   for(const r of DB.relics)for(const k of ["found","sold","earned","best"]){const m=L[k];if(m[r.name]!=null&&r.name!==r.id){
@@ -554,8 +600,18 @@ const monthName=dn=>fmtDate(dn,{month:"long",year:"numeric"});
 const atHome=()=>S.location==="home";
 const isLate=()=>S.clock.min>=21*60;
 const nodeById=id=>S.nodes.find(n=>n.id===id);
-function tripCost(n){return Math.max(1,5+n.tags.reduce((s,t)=>s+TAGS[t].fee,0)-prank("efficient_engine"))}
-const tripTime=n=>30+15*n.tags.length;
+const hasTag=(n,t)=>(n.tags||[]).includes(t);
+const sisterOf=n=>hasTag(n,"Wave-Touched")?n.wave:null;
+function tripCost(n){
+  if(S.freeTrip)return 0; // Hrönn pushed the boat along
+  let sur=(n.tags||[]).reduce((s,t)=>s+(TAGS[t]?TAGS[t].fee:0),0);
+  if(sisterOf(n)==="Kólga")sur=Math.floor(sur/2);
+  return Math.max(1,5+sur-prank("efficient_engine"));
+}
+const tripTime=n=>{const t=30+15*n.tags.length;return sisterOf(n)==="Kólga"?Math.round(t/2):t};
+const attemptTime=n=>20+(hasTag(n,"Storm Front")?10:0)+(sisterOf(n)==="Uðr"?10:0)-(sisterOf(n)==="Kólga"?5:0);
+const tagLabel=(n,t)=>t==="Wave-Touched"&&n.wave?`Wave-Touched (${n.wave})`:t;
+const tagLean=(n,t)=>t==="Wave-Touched"&&n.wave?SISTERS[n.wave]:TAGS[t]?TAGS[t].lean:"";
 
 /* ================================================================
    LOG / LEDGER / CLOCK
@@ -599,24 +655,50 @@ function commit(){S.meta.savedAt=Date.now();saveLocal(true);render()}
 /* ================================================================
    DREDGING
    ================================================================ */
-function genNode(){
-  const tagNames=Object.keys(TAGS);
-  const n2=Math.random()<.4?2:1;
-  const tags=shuffle(tagNames).slice(0,n2);
-  let x,y,tries=0;
-  do{x=rint(290,760);y=rint(45,455);tries++}
-  while(tries<60&&S.nodes.some(o=>Math.hypot(o.x-x,o.y-y)<95));
-  const attempts=rint(3,6)+(tags.includes("Rich")?2:0)+prank("better_rig");
-  return {id:nid("n"),x,y,tags,attempts,left:attempts,revealOrder:shuffle(tags)};
+function rollTag(exclude){ // tier first (Common 70 / Uncommon 22 / Rare 7 / Legendary 1), then a tag in that tier
+  for(let i=0;i<50;i++){const tier=wpick(TAG_TIERS),pool=Object.keys(TAGS).filter(t=>TAGS[t].tier===tier&&!exclude.includes(t));if(pool.length)return pick(pool)}
+  return pick(Object.keys(TAGS).filter(t=>!exclude.includes(t)));
 }
-function fillNodes(){while(S.nodes.length<nodesVisible())S.nodes.push(genNode())}
-function revealed(n){return n.revealOrder.slice(0,prank("sonar_sweep"))}
+function rollAttempts(tags,wave){
+  let a=rint(3,6)+(tags.includes("Rich")?2:0)+(tags.includes("Shark Run")?1:0)+(tags.includes("Kelp Forest")?2:0)+(wave==="Bylgja"?1:0)+prank("better_rig");
+  if(wave==="Dúfa")a*=2;
+  if(wave==="Blóðughadda")a=Math.max(1,a-1);
+  return a;
+}
+function genNode(spec){
+  let tags,wave,x,y;
+  if(spec){({tags,wave,x,y}=spec)}
+  else{
+    tags=[];const n2=Math.random()<.4?2:1;for(let i=0;i<n2;i++)tags.push(rollTag(tags));
+    wave=tags.includes("Wave-Touched")?pick(Object.keys(SISTERS)):null;
+    let tries=0;do{x=rint(290,760);y=rint(45,455);tries++}while(tries<60&&S.nodes.some(o=>Math.hypot(o.x-x,o.y-y)<95));
+  }
+  const attempts=rollAttempts(tags,wave);
+  return {id:nid("n"),x,y,tags,wave,attempts,left:attempts,revealOrder:shuffle(tags),firstGeode:false,arrived:false,echo:!!(spec&&spec.echo)};
+}
+function fillNodes(){
+  for(const sp of S.echoQueue||[])S.nodes.push(genNode(sp)); // Echoing nodes come back once, same spot, without Echoing
+  S.echoQueue=[];
+  while(S.nodes.length<nodesVisible())S.nodes.push(genNode());
+}
+function revealed(n){return hasTag(n,"Fog Bank")?[]:n.revealOrder.slice(0,prank("sonar_sweep"))}
 
 function sail(id){
   const n=nodeById(id);if(!n)return;
   if(S.location===id)return;
-  const c=tripCost(n);
-  act(tripTime(n),()=>{if(!pay(c,`Metered Mana — trawler trip`))return false;S.location=id;S.pos=null;ev("trip",{cost:c,tags:revealed(n)})},`Sailed to a Dredge Node (${cr(c)})`);
+  const c=tripCost(n),free=!!S.freeTrip;
+  act(tripTime(n),()=>{
+    if(c>0&&!pay(c,`Metered Mana — trawler trip`))return false;
+    if(free){S.freeTrip=false;addLog("Hrönn's wave carries the boat out — no fuel needed.")}
+    S.location=id;S.pos=null;ev("trip",{cost:c,tags:revealed(n).map(t=>tagLabel(n,t))});
+    if(!n.arrived){n.arrived=true;arrive(n)}
+  },`Sailed to a Dredge Node (${cr(c)})`);
+}
+function arrive(n){ // one-time effects when she first reaches a node
+  const w=sisterOf(n);
+  if(w==="Bylgja"){S.clock.min+=120;addLog("Bylgja waves the boat over for a drinking contest. Two hours later, nobody has won.");ev("sister",{text:"Bylgja's drinking contest ate two hours"})}
+  if(w==="Hrönn"){S.freeTrip=true;addLog("Hrönn is here. She'll carry the boat out to the next node on a wave.")}
+  if(w)addLog(`Wave-Touched: ${w} is playing here.`);
 }
 function returnHome(){
   if(atHome())return;
@@ -637,34 +719,58 @@ function unloadNow(){
   toast(u.moved?`Unloaded ${u.moved} item${u.moved>1?"s":""}${u.left?` — ${u.left} still won't fit`:""}.`:"Still no room in the Storage Room.");
   commit();
 }
+function rollEcho(school,level){const pool=DB.spells.filter(s=>s.school===school&&s.level===level);return pool.length?pick(pool).name:null}
 function rollDredge(n){
-  const T=n.tags,c=cfg();
-  const relicChance=c.relicBase+(T.includes("Wreck")?c.relicWreck:0)+(T.includes("Ruins")?c.relicRuins:0);
+  const T=n.tags,c=cfg(),w8=sisterOf(n);
+  const relicChance=c.relicBase+(T.includes("Wreck")?c.relicWreck:0)+(T.includes("Ruins")?c.relicRuins:0)+(T.includes("Planar Seam")?c.relicPlanar:0);
   if(DB.relics.length&&Math.random()*100<relicChance){
     const size=wpick(T.includes("Ruins")?{Small:25,Medium:35,Large:25,Monumental:15}:{Small:50,Medium:30,Large:15,Monumental:5});
     let pool=DB.relics.filter(r=>r.size===size);if(!pool.length)pool=DB.relics;
     const R=pick(pool);
     const shifts=(T.includes("Wreck")?1:0)+(T.includes("Ruins")?1:0),sh=c.condShift;
-    const cond=wpick({Damaged:50-sh*shifts,"Slightly Worn":35+sh/2*shifts,Pristine:15+sh/2*shifts});
-    return {id:nid("r"),kind:"relic",relicId:R.id,name:R.name,size:R.size,base:R.base,description:R.description,condition:cond,
-            sockets:R.sockets.map(s=>({school:s.school,level:s.level,gem:null})),stage:"dormant"};
+    const odds={Damaged:50-sh*shifts,"Slightly Worn":35+sh/2*shifts,Pristine:15+sh/2*shifts};
+    if(w8==="Hrönn")odds.Damaged=0;
+    const planar=T.includes("Planar Seam");
+    return {id:nid("r"),kind:"relic",relicId:R.id,name:R.name,size:R.size,base:planar?r2(R.base*1.5):R.base,planar,description:R.description,condition:wpick(odds),
+            sockets:R.sockets.map(s=>({school:s.school,level:s.level,echo:s.echo||rollEcho(s.school,s.level),gem:null})),stage:"dormant"};
   }
+  const sizes=["Pebble","Fist","Melon","Boulder"];
   let w={Pebble:40,Fist:35,Melon:18,Boulder:7};
   if(T.includes("Shallows"))w={Pebble:55,Fist:35,Melon:8,Boulder:2};
   if(T.includes("Trench"))w={Pebble:12,Fist:28,Melon:35,Boulder:25};
-  return {id:nid("g"),kind:"geode",size:wpick(w),tags:T.slice()};
+  let i=sizes.indexOf(wpick(w));
+  const first=!n.firstGeode;
+  if(w8==="Hefring")i=Math.min(3,i+1);
+  if(first&&T.includes("Shark Run"))i=Math.max(1,i);
+  if(T.includes("Kelp Forest"))i=Math.min(1,i); // the cap wins
+  return {id:nid("g"),kind:"geode",size:sizes[i],tags:T.slice(),wave:w8,first};
+}
+function haul(it){
+  const what=it.kind==="relic"?`a ${it.size} relic — ${it.name} (${it.condition})${it.planar?", shimmering with another plane":""}`:`a ${it.size} geode`;
+  const fits=used(S.hold)+itemSpace(it)<=holdCap();ev("find",{what,kept:fits,relic:it.kind==="relic"});
+  if(!fits){addLog(`Hauled up ${what}, but it won't fit in the hold. Back it goes.`);toast(`Hold full — ${what} went back over the side.`)}
+  else{S.hold.push(it);addLog(`Hauled up ${what}.`);toast(`Hauled up ${what}!`)}
+  return what;
 }
 function dredge(){
   const n=nodeById(S.location);if(!n||n.left<=0)return;
-  act(20,()=>{
-    n.left--;gainXP(1,"dredge attempt");
+  const w8=sisterOf(n),hef=w8==="Hefring";
+  act(attemptTime(n),()=>{
+    n.left--;gainXP(hef?2:1,"dredge attempt");
+    if(w8==="Uðr"&&!S.gossip){S.gossip=true;addLog("Uðr won't stop talking — but she lets slip that one of your factions will definitely send work tomorrow.")}
     const it=rollDredge(n);
-    const what=it.kind==="relic"?`a ${it.size} relic — ${it.name} (${it.condition})`:`a ${it.size} geode`;
-    if(it.kind==="relic"){gainXP(5,"found a relic");noteFound(S.lifetime,it.relicId,it.condition)}
-    const fits=used(S.hold)+itemSpace(it)<=holdCap();ev("find",{what,kept:fits,relic:it.kind==="relic"});
-    if(!fits){addLog(`Hauled up ${what}, but it won't fit in the hold. Back it goes.`);toast(`Hold full — ${what} went back over the side.`)}
-    else{S.hold.push(it);addLog(`Hauled up ${what}.`);toast(`Hauled up ${what}!`)}
-    if(n.left===0){S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;addLog("The Dredge Node fades. A new one will appear tomorrow.")}
+    if(it.kind==="relic"){gainXP(hef?8:5,"found a relic");noteFound(S.lifetime,it.relicId,it.condition)}
+    else if(it.first){n.firstGeode=true}
+    haul(it);
+    if(it.kind==="geode"&&it.first&&w8==="Himinglæva"){const twin={...it,id:nid("g"),first:false};addLog("Himinglæva grins — the geode comes up with a twin.");haul(twin)}
+    const coin=(p,lo,hi,why)=>{if(Math.random()<p){const v=rint(lo,hi);money(v,why);addLog(`${why}: +${cr(v)}.`);ev("coins",{amount:v,why})}};
+    if(hasTag(n,"Coin Scatter"))coin(.2,1,10,"Loose coins from old spilled cargo");
+    if(w8==="Bylgja")coin(.3,5,15,"Party leftovers from Bylgja");
+    if(n.left===0){
+      S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;
+      if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true});addLog("The Dredge Node fades — but it hums like it'll be back tomorrow.")}
+      else addLog("The Dredge Node fades. A new one will appear tomorrow.");
+    }
   },"Dredge attempt");
 }
 function toss(where,id){
@@ -677,17 +783,29 @@ function toss(where,id){
 /* ================================================================
    CHISEL & CUT
    ================================================================ */
-function rollGem(tags){
-  let rw={...RARITY_ODDS};
-  if(tags.includes("Deep"))rw={Common:35,Uncommon:30,Rare:23,"Mythic Rare":12};
-  if(tags.includes("Shallows"))rw={Common:65,Uncommon:25,Rare:8,"Mythic Rare":2};
-  const rar=wpick(rw);
+function rollGem(src,firstGem){ // src: a geode (tags, wave, first) or a plain tag list
+  const geo=Array.isArray(src)?{tags:src}:src,tags=geo.tags||[],wave=geo.wave||null;
+  const better=tags.includes("Deep")||tags.includes("Storm Front")||tags.includes("Rán's Net");
+  const rw=[...RARITIES.map(r=>RARITY_ODDS[r])];
+  for(const t of ["Deep","Storm Front","Shallows"])if(tags.includes(t)&&!(t==="Shallows"&&better))RARITY_SHIFT[t].forEach((d,i)=>rw[i]+=d);
+  let rarW=Object.fromEntries(RARITIES.map((r,i)=>[r,Math.max(0,rw[i])]));
+  if(firstGem&&geo.first&&tags.includes("Rán's Net"))rarW={Common:0,Uncommon:0,Rare:rarW.Rare||15,"Mythic Rare":rarW["Mythic Rare"]||5};
+  const rar=wpick(rarW);
   const pool=Object.keys(GEMS).filter(g=>GEMS[g].r===rar);
   const tw=pool.map(g=>{let w=1;
     if(tags.includes("Reef")&&["Aquamarine","Moonstone","Opal"].includes(g))w*=3;
     if(tags.includes("Vent")&&["Ruby","Garnet","Topaz"].includes(g))w*=3;
+    if(wave==="Blóðughadda"&&["Ruby","Garnet","Topaz"].includes(g))w*=6;
     return [g,w]});
-  return {id:nid("gem"),type:wpick(tw),quality:wpick(Object.fromEntries(QUALITIES.map(q=>[q,QUALITY[q].odds]))),state:"rough"};
+  let q={Crude:70,Fine:25,Perfect:5};
+  if(tags.includes("Glimmer")){q.Fine+=5;q.Perfect+=5;q.Crude-=10}
+  if(tags.includes("Rán's Net")){q.Crude-=q.Perfect;q.Perfect*=2}
+  if(wave==="Dúfa")q={Crude:80,Fine:0,Perfect:20};
+  let quality=wpick(q);
+  if(firstGem&&geo.first&&wave==="Dröfn")quality=QUALITIES[Math.min(2,qRank(quality)+1)];
+  const g={id:nid("gem"),type:wpick(tw),quality,state:"rough"};
+  if(tags.includes("Mana Seep"))g.manaCharged=true;
+  return g;
 }
 function chisel(id){
   if(!atHome()){toast("The cracking bench is at home.");return}
@@ -696,7 +814,7 @@ function chisel(id){
   act(GEODES[g.size].chisel,()=>{
     S.storage.splice(i,1);
     const n=rint(1,GEODES[g.size].max),got=[];
-    for(let k=0;k<n;k++){const gem=rollGem(g.tags||[]);S.gems.push(gem);got.push(`${gem.quality} ${gem.type}`)}
+    for(let k=0;k<n;k++){const gem=rollGem(g,k===0);S.gems.push(gem);got.push(`${gem.quality} ${gem.type}${gem.manaCharged?" (Mana-Charged)":""}`)}
     toast(`Inside: ${got.join(", ")}`);addLog(`Chiseled a ${g.size} geode: ${got.join(", ")}.`);ev("chisel",{size:g.size,got});
   },"Chiseled a geode");
 }
@@ -723,8 +841,9 @@ function cutSpell(gemId,spellName,quiet){
   const sp=DB.spells.find(s=>s.name===spellName);if(!sp)return false;
   if(!GEMS[g.type].s.includes(sp.school)){toast(`${g.type} has no ${sp.school} affinity.`);return false}
   if(!canCutSpell(sp)){toast(`Finn can't cut that yet — max spell level ${maxSpellLevel()}, and the ${sp.school} pattern must be learned.`);return false}
-  const mana=r2(spellCost(sp.level)*.2);
-  if(!pay(mana,`Metered Mana — ${sp.name} cut`))return false;
+  const mana=g.manaCharged?0:r2(spellCost(sp.level)*.2);
+  if(mana>0&&!pay(mana,`Metered Mana — ${sp.name} cut`))return false;
+  if(g.manaCharged){delete g.manaCharged;addLog(`The ${g.type} was Mana-Charged — the ${sp.name} cut drew no Metered Mana.`)}
   g.state="spell";g.spell={name:sp.name,level:sp.level,school:sp.school};S.lifetime.cut[sp.name]=(S.lifetime.cut[sp.name]||0)+1;
   const m=spendTime(60+30*sp.level);gainXP(3+sp.level,"spell cut");
   ev("cut",{text:`${g.quality} ${g.type} cut for ${sp.name} (${sp.level?ordinal(sp.level)+"-level":"cantrip"} ${sp.school})`});
@@ -1036,13 +1155,18 @@ function socketGem(rid,i,gid){
   if(s.gem){const g=S.gems.find(x=>x.id===s.gem);if(g)delete g.reserved;s.gem=null}
   if(gid){const g=S.gems.find(x=>x.id===gid);if(g){g.reserved="relic:"+rid;s.gem=g.id}}
   const was=r.stage;r.stage=r.sockets.every(x=>x.gem)?"active":"dormant";
-  if(was!=="active"&&r.stage==="active"){addLog(`${r.name} wakes up! Every socket is filled.`);toast(`${r.name} is active!`);ev("activate",{name:r.name})}
+  if(was!=="active"&&r.stage==="active"){const rs=resonance(r);addLog(`${r.name} wakes up! Every socket is filled${rs.full?" — and every one Resonant. The memory comes through crystal clear":rs.n?` (${rs.n} Resonant)`:""}.`);toast(`${r.name} is active!${rs.full?" Full Resonance!":""}`);ev("activate",{name:r.name,resonant:rs.n,full:rs.full})}
   commit();
 }
+const socketGemOf=(r,s)=>S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];
+const isResonant=(r,s)=>{const g=s.gem&&socketGemOf(r,s);return !!(g&&g.spell&&s.echo&&g.spell.name===s.echo)};
+function resonance(r){const n=r.sockets.filter(s=>isResonant(r,s)).length,full=n>0&&n===r.sockets.length;
+  return {n,full,pct:n*cfg().resonantPct+(full?cfg().fullResonancePct:0)}}
 function relicPayout(r){ // Appraised Value, plus what the Survey would pay today
-  const gv=r.sockets.reduce((a,s)=>{const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];return a+(g?gemValue(g.type,g.quality):0)},0);
-  const av=r2((r.base+gv)*CONDITIONS[r.condition].mod),bonus=r2(av*surveyBonusPct()/100),gross=r2(av+bonus),royalty=r2(gross*cfg().royaltyPct/100);
-  return {gems:gv,av,bonus,gross,royalty,total:r2(gross-royalty)};
+  const gv=r.sockets.reduce((a,s)=>{const g=socketGemOf(r,s);return a+(g?gemValue(g.type,g.quality):0)},0);
+  const rs=resonance(r),pre=r2((r.base+gv)*CONDITIONS[r.condition].mod),resBonus=r2(pre*rs.pct/100);
+  const av=r2(pre+resBonus),bonus=r2(av*surveyBonusPct()/100),gross=r2(av+bonus),royalty=r2(gross*cfg().royaltyPct/100);
+  return {gems:gv,pre,res:rs,resBonus,av,bonus,gross,royalty,total:r2(gross-royalty)};
 }
 const SV=()=>{S.survey=S.survey||{points:0,month:null,sold:0};return S.survey};
 const surveyLevel=()=>Math.floor(SV().points/5);
@@ -1175,8 +1299,10 @@ function overnight(){
   notes.push(...runAuctions());
   // commission rolls
   let got=0;
+  const regd=FACTIONS.filter(f=>S.factions[f.key].registered),tip=S.gossip&&regd.length?pick(regd).key:null;S.gossip=false;
   for(const f of FACTIONS){const st=S.factions[f.key];if(!st.registered)continue;
     const ch=commissionChance(f.key);let n=Math.floor(ch/100);if(Math.random()*100<ch%100)n++;
+    if(f.key===tip&&n<1){n=1;notes.push(`Uðr was right — the ${f.name} sent work.`)}
     for(let i=0;i<n;i++){const o=genOrder(f);S.offers.push(o);ev("offer",{...evO(o),expires:o.expires});got++}}
   if(got)notes.push(`${got} new commission offer${got>1?"s":""} arrived.`);
   // nodes
@@ -1245,7 +1371,7 @@ const GH={
     if(sp)DB.spells=sp.data.spells||sp.data;
     if(rl)DB.relics=rl.data.relics||rl.data;
     if(fc)setFactions(fc.data);
-    relinkLifetime();
+    relinkLifetime();ensureEchoes();
     lsSet(LS.db,DB);
     return {spells:!!sp,relics:!!rl,factions:!!fc};
   },
@@ -1324,7 +1450,7 @@ function mapSVG(){
   const tp=trawlerPos(),sel=UI.selNode&&nodeById(UI.selNode);
   const nodes=S.nodes.map(n=>{
     const rev=revealed(n),hidden=n.tags.length-rev.length;
-    const tagTxt=rev.map(t=>TAG_ICON[t]).join(" ")+(hidden?" "+"?".repeat(hidden):"");
+    const tagTxt=rev.map(t=>TAG_ICON[t]).join(" ")+(hidden?" "+"?".repeat(hidden):"")+(n.echo?" ↺":"");
     return `<g class="node ${UI.selNode===n.id?"sel":""}" data-node="${n.id}" tabindex="0" role="button" aria-label="Dredge Node, ${tripCost(n)} Credits">
       <circle cx="${n.x}" cy="${n.y}" r="44" fill="transparent"/>
       <circle class="halo" cx="${n.x}" cy="${n.y}" r="20"/>
@@ -1356,13 +1482,19 @@ function mapSVG(){
    <text x="${DOCK.x-6}" y="${DOCK.y+22}" fill="#d8bf86" font-size="11">Dock</text>
    ${route}${nodes}
    <g transform="translate(${tp.x} ${tp.y})" aria-label="The Lucky Landshark"><path d="M-14 4 L14 4 L9 12 H-9 Z" fill="#a8823f" stroke="#2a1f0c"/><rect x="-5" y="-7" width="9" height="11" fill="#f4eee0" stroke="#2a1f0c"/><line x1="7" y1="-12" x2="7" y2="4" stroke="#2a1f0c" stroke-width="1.5"/></g>
-   <g transform="translate(560 474)" fill="#d8bf86" font-size="11"><text x="0" y="0">≈ Shallows ✿ Reef ⚓ Wreck ✦ Rich</text><text x="0" y="15">⌂ Ruins ♨ Vent ▼ Deep ⇊ Trench</text></g>
   </svg>`;
+}
+function tagGuide(){
+  const tiers=["Common","Uncommon","Rare","Legendary"];
+  return `<details style="margin-top:8px"><summary class="small">Tag guide</summary>${tiers.map(tr=>`<div class="tiny muted" style="margin:8px 0 3px;text-transform:uppercase;letter-spacing:.08em">${tr} · ${TAG_TIERS[tr]}%</div>
+    ${Object.entries(TAGS).filter(([,v])=>v.tier===tr).map(([k,v])=>`<div class="small"><span class="tag tier-${tr}">${v.icon} ${esc(k)}</span> <span class="muted">+${v.fee} Cr · ${esc(v.lean)}</span></div>`).join("")}`).join("")}
+    <div class="tiny muted" style="margin:8px 0 3px;text-transform:uppercase;letter-spacing:.08em">Wave-Touched sisters</div>
+    ${Object.entries(SISTERS).map(([k,v])=>`<div class="small"><b>${k}</b> <span class="muted">${esc(v)}</span></div>`).join("")}</details>`;
 }
 function bindMap(){document.querySelectorAll(".node").forEach(g=>{const f=()=>{UI.selNode=g.dataset.node;render()};g.addEventListener("click",f);g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();f()}})})}
 function itemRow(it,where){
   const sp=itemSpace(it);
-  if(it.kind==="geode")return `<tr><td>🪨 <b>${it.size} geode</b> <span class="muted tiny">${(it.tags||[]).length?"from "+it.tags.map(t=>prank("sonar_sweep")?t:"?").join(", "):""}</span></td><td>${sp}</td><td>up to ${GEODES[it.size].max} gem${GEODES[it.size].max>1?"s":""}</td>
+  if(it.kind==="geode")return `<tr><td>🪨 <b>${it.size} geode</b> <span class="muted tiny">${(it.tags||[]).length?"from "+(it.tags.includes("Fog Bank")?it.tags.map(()=>"?"):it.tags.map(t=>prank("sonar_sweep")?(t==="Wave-Touched"&&it.wave?`Wave-Touched (${it.wave})`:t):"?")).join(", "):""}</span></td><td>${sp}</td><td>up to ${GEODES[it.size].max} gem${GEODES[it.size].max>1?"s":""}</td>
     <td class="row">${where==="storage"?`<button class="btn sm" data-act="chisel" data-id="${it.id}" ${atHome()?"":"disabled"}>Chisel (${fmtDur(GEODES[it.size].chisel)})</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
   return `<tr><td>🏺 <b>${esc(it.name)}</b> <span class="tag">${it.size}</span> <span class="tag">${it.condition}</span></td><td>${sp}</td><td>${it.sockets.length} sockets</td>
     <td class="row">${where==="storage"?`<button class="btn sm" data-tab="relics">Open</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
@@ -1375,16 +1507,16 @@ VIEWS.sea=()=>{
     const rev=revealed(sel);
     side=`<h3>Dredge Node <span class="meta">${sel.left}/${sel.attempts} attempts left</span></h3>
      <dl class="kv"><dt>Fuel</dt><dd><b>${cr(tripCost(sel))}</b> Metered Mana</dd><dt>Travel</dt><dd>${fmtDur(isLate()?Math.ceil(tripTime(sel)*1.25):tripTime(sel))}</dd>
-     <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag">${TAG_ICON[t]} ${t}</span> <span class="muted small">${TAGS[t].lean}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}</dd></dl>
+     <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag tier-${TAGS[t].tier}">${TAG_ICON[t]} ${esc(tagLabel(sel,t))}</span> <span class="muted small">${esc(tagLean(sel,t))}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${hasTag(sel,"Fog Bank")?"Fog hides every tag — ":""}${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}${sel.echo?`<br><span class="muted small">↺ Back for one more round (Echoing).</span>`:""}</dd></dl>
      <hr class="rule"><div class="row">${S.location===sel.id?`<span class="tag ok">You're here</span>`:`<button class="btn brass" data-act="sail" data-id="${sel.id}">Sail here (${cr(tripCost(sel))})</button>`}</div>`;
-  }else side=`<h3>Dredge Nodes</h3><p class="muted small">Tap a glowing circle to see its fuel cost and any tags Finn can read. Every trip out costs Metered Mana; coming home is free.</p>`;
+  }else side=`<h3>Dredge Nodes</h3><p class="muted small">Tap a glowing circle to see its fuel cost and any tags Finn can read. Every trip out costs Metered Mana; coming home is free.${S.freeTrip?" <b>Hrönn will carry your next trip out for free.</b>":""}</p>${tagGuide()}`;
   return `${dbBanner()}<div class="grid g2">
    <div><div class="mapbox">${mapSVG()}</div></div>
    <div class="grid">
     <div class="panel">${side}</div>
     <div class="panel"><h3>${atHome()?"Docked at the lighthouse":here?"On station":"Open water"}</h3>
       <div class="row">
-       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (20 min)</button>
+       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (${fmtDur(here?attemptTime(here):20)})</button>
        <button class="btn ghost" data-act="home" ${atHome()?"disabled":""}>Return home &amp; unload (30 min)</button>
       </div>
       ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${here.left} attempt${here.left===1?"":"s"} left before this node fades.</p>`:""}
@@ -1414,6 +1546,7 @@ function gemRow(g){
   else if(g.state==="plain")cut=`${esc(g.cut)} <span class="muted small">(plain)</span>`;
   else if(g.state==="accent")cut=`Accent stone${g.count>1?`s <b>×${g.count}</b>`:""}`;
   else cut=spellTxt(g.spell);
+  if(g.manaCharged)cut+=` <span class="tag" title="Its spell cut costs no Metered Mana">💧 Mana-Charged</span>`;
   const val=stoneValue(g);
   return `<tr><td>${gemDot(g.type)} <b>${g.type}</b></td><td>${rarTag(GEMS[g.type].r)}</td><td>${qTag(g.quality)}</td><td>${cut}</td><td>${cr(val)}${g.state==="accent"?` <span class="tiny muted">each</span>`:""}</td>
    <td>${res}${g.state==="rough"&&!g.reserved?`<button class="btn sm" data-act="cutopen" data-id="${g.id}">Cut…</button>`:""}</td></tr>`;
@@ -1567,13 +1700,15 @@ VIEWS.relics=()=>{
     const socks=r.sockets.map((s,i)=>{
       const g=S.gems.find(x=>x.id===s.gem)||(r.frozen||{})[s.gem];
       const c=socketCands(s);
-      return `<div class="sock ${g?"filled":""}"><div class="row">${shapeSVG(s.school)}<b>${s.level===0?"Cantrip":ordinal(s.level)}</b> ${s.school}</div>
+      const res=isResonant(r,s);
+      return `<div class="sock ${g?"filled":""}"><div class="row">${shapeSVG(s.school)}<b>${s.level===0?"Cantrip":ordinal(s.level)}</b> ${s.school}${res?` <span class="tag res">Resonant</span>`:""}</div>
         <div class="tiny muted">${SCHOOL_SHAPE[s.school]} socket${s.level?`, ${facets(s.level)} facets deep`:", smooth dome"}</div>
-        ${r.stage==="packed"?`<div class="small">${g?esc(itemName(g)):""}</div>`:`<select data-sock="${r.id}" data-i="${i}" style="margin-top:4px;width:100%"><option value="">${g||c.length?"— empty —":"no matching cut gem"}</option>${g?`<option value="${g.id}" selected>${esc(itemName(g))}</option>`:""}${c.map(x=>`<option value="${x.id}">${esc(itemName(x))}</option>`).join("")}</select>`}</div>`}).join("");
+        ${s.echo?`<div class="tiny">echoing <b>${esc(s.echo)}</b></div>`:""}
+        ${r.stage==="packed"?`<div class="small">${g?esc(itemName(g)):""}</div>`:`<select data-sock="${r.id}" data-i="${i}" style="margin-top:4px;width:100%"><option value="">${g||c.length?"— empty —":"no matching cut gem"}</option>${g?`<option value="${g.id}" selected>${esc(itemName(g))}</option>`:""}${c.slice().sort((a,b)=>(b.spell.name===s.echo)-(a.spell.name===s.echo)).map(x=>`<option value="${x.id}">${x.spell.name===s.echo?"★ ":""}${esc(itemName(x))}${x.spell.name===s.echo?" (Resonant)":""}</option>`).join("")}</select>`}</div>`}).join("");
     return `<div class="panel"><h3>${esc(r.name)} <span class="meta">${r.size} · ${r.condition} ×${CONDITIONS[r.condition].mod}</span></h3>
       <p class="small muted">${esc(r.description||"")}</p>
       <div class="sockets">${socks}</div>
-      <div class="row between"><div><div class="muted tiny">Appraised Value: (${cr(r.base)} base + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod}</div><div class="price">${cr(p.av)}</div>
+      <div class="row between"><div><div class="muted tiny">Appraised Value: (${cr(r.base)} base${r.planar?" (Planar Seam +50%)":""} + ${cr(p.gems)} gems) × ${CONDITIONS[r.condition].mod}${p.res.pct?` + ${p.res.pct}% Resonance (${p.res.n}/${r.sockets.length}${p.res.full?", full":""})`:""}</div><div class="price">${cr(p.av)}</div>
         <div class="muted tiny">Survey pays ${cr(p.gross)}${p.bonus?` (incl. +${surveyBonusPct()}% Standing)`:""} → ${cr(p.total)} after the royalty · Salon opens at ${cr(p.av*.5)}, ${RELIC_SIZES[r.size].auction} days, expect ~${Math.round(expectedBidPct(r.size))}% · ${10*r.sockets.length} XP on sale</div></div>
       <div class="row">${r.stage==="dormant"?`<span class="tag">Dormant — ${r.sockets.filter(s=>!s.gem).length} socket(s) empty</span>`:r.stage==="active"?`<span class="tag ok">Active</span><button class="btn brass" data-act="packrelic" data-id="${r.id}" ${atHome()?"":"disabled"}>Crate it (30 min, ${cr(RELIC_SIZES[r.size].crate)})</button>`
         :`<button class="btn end" data-act="sendrelic" data-id="${r.id}" ${surveySoldThisMonth()>=surveyLimit()?`disabled title="Monthly Survey limit reached"`:""}>Sell to the Survey (5 min)</button><button class="btn brass" data-act="consign" data-id="${r.id}">Consign to the Salon (5 min)</button>`}</div></div></div>`;
@@ -1591,7 +1726,7 @@ VIEWS.relics=()=>{
     <p class="tiny muted">Opens at 50% of Appraised Value; each night there's a 70% chance of a bid adding 10–20%. Closes after 4/5/6/7 days by size and sells at the final bid, less the ${cfg().salonFeePct}% house fee and the ${cfg().royaltyPct}% Salvage Royalty.</p></div></div>`;
   return `${dbBanner()}${inHold?`<div class="banner">${inHold} relic(s) still in the trawler hold — bring them home to work on them.</div>`:""}
    ${standing}
-   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. Appraised Value is its base plus the gems (base × Quality), times its condition.</p>
+   <p class="muted small">Each socket's shape names a school; its depth names the spell level. Fill every socket with a matching spell-cut gem and the relic wakes up. Each socket also echoes one spell: use that exact spell and the socket is <b>Resonant</b> (+${cfg().resonantPct}% Appraised Value each, +${cfg().fullResonancePct}% more if all are). Appraised Value is its base plus the gems (base × Quality), times its condition, plus Resonance.</p>
    ${rs.length?`<div class="grid">${cards}</div>`:`<div class="panel empty">No relics in storage. Wreck and Ruins nodes turn them up more often.</div>`}
    ${S.relics.length?`<h2 style="margin:22px 0 10px">Relics sold</h2><div class="panel"><table><tr><th>Date</th><th>Relic</th><th>Condition</th><th>Sold via</th><th>Sale</th><th>Kept</th></tr>${S.relics.slice(0,30).map(x=>`<tr><td>${fmtShort(x.day)}</td><td>${esc(x.name)} <span class="muted small">${x.size}</span></td><td>${x.condition}</td><td>${x.via||"Survey"}</td><td>${x.gross?cr(x.gross):"—"}</td><td>${cr(x.total)}</td></tr>`).join("")}</table></div>`:""}`;
 };
@@ -1676,7 +1811,10 @@ function dbProblems(){
     (r.sockets||[]).forEach((k,j)=>{
       if(!SCHOOLS.includes(k.school))out.push([w,`socket ${j+1} has an unknown school "${k.school}"`]);
       else if(!Number.isInteger(k.level)||k.level<0||k.level>9)out.push([w,`socket ${j+1} has level ${k.level}`]);
-      else if(!have.has(k.school+"|"+k.level))out.push([w,`socket ${j+1} needs a ${k.level?ordinal(k.level)+"-level":"cantrip"} ${k.school} spell, but the spell database has none — it can never be filled`])})});
+      else if(!have.has(k.school+"|"+k.level))out.push([w,`socket ${j+1} needs a ${k.level?ordinal(k.level)+"-level":"cantrip"} ${k.school} spell, but the spell database has none — it can never be filled`]);
+      if(k.echo){const sp=DB.spells.find(x=>x.name===k.echo);
+        if(!sp)out.push([w,`socket ${j+1} echoes "${k.echo}", which isn't in the spell database`]);
+        else if(sp.school!==k.school||sp.level!==k.level)out.push([w,`socket ${j+1} echoes ${k.echo}, but that's a ${sp.level?ordinal(sp.level)+"-level":"cantrip"} ${sp.school} spell, not ${k.level?ordinal(k.level)+"-level":"cantrip"} ${k.school}`])}})});
   if(DB.factions){
     const planes=new Set(DB.planes||[]);
     for(const [k,f] of Object.entries(DB.factions)){
@@ -1721,7 +1859,7 @@ VIEWS.codex=()=>{
       if(!f)return `<div class="panel" style="opacity:.75"><h3>????</h3><p class="small muted">Not yet dredged up.</p></div>`;
       return `<div class="panel"><h3>${esc(r.name)} <span class="meta">${r.size} · base ${cr(r.base)}</span></h3>
        <p class="small muted">${esc(r.description||"")}</p>
-       <div class="row small" style="margin:6px 0">${r.sockets.map(k=>`<span class="tag">${shapeSVG(k.school)} ${k.level?ordinal(k.level):"Cantrip"} ${k.school}</span>`).join(" ")}</div>
+       <div class="row small" style="margin:6px 0">${r.sockets.map(k=>`<span class="tag">${shapeSVG(k.school)} ${k.level?ordinal(k.level):"Cantrip"} ${k.school}${k.echo?` · ${esc(k.echo)}`:""}</span>`).join(" ")}</div>
        <dl class="kv"><dt>Found</dt><dd>${f}×</dd><dt>Sold</dt><dd>${L.sold[r.id]||0}×</dd><dt>Best condition</dt><dd>${L.best[r.id]||"—"}</dd><dt>Survey earnings</dt><dd>${cr(L.earned[r.id]||0)}</dd></dl></div>`}).join("");
     return `${tabs}<p class="muted small">${found} of ${DB.relics.length} relics found.</p><div class="cards">${rows||`<div class="panel empty">No relic database loaded.</div>`}</div>`;
   }
@@ -1794,7 +1932,7 @@ function snapshotMD(){
   const relics=[...S.storage,...S.hold].filter(i=>i.kind==="relic");
   if(relics.length){P("");P(`## Relics on hand`);
     for(const r of relics){const filled=r.sockets.filter(k=>k.gem).length;
-      P(`- ${r.name} (${r.size}, ${r.condition}) — ${r.stage==="packed"?"crated for the Survey":r.stage==="active"?"active, all sockets filled":`${filled}/${r.sockets.length} sockets filled`}${S.hold.includes(r)?", still in the trawler hold":""}. Sockets: ${r.sockets.map(k=>`${k.level?ordinal(k.level):"cantrip"} ${k.school}${k.gem?" ✓":""}`).join(", ")}.`)}}
+      P(`- ${r.name} (${r.size}, ${r.condition}${r.planar?", Planar Seam":""}) — ${r.stage==="packed"?"crated for the Survey":r.stage==="active"?"active, all sockets filled":`${filled}/${r.sockets.length} sockets filled`}${S.hold.includes(r)?", still in the trawler hold":""}. Sockets: ${r.sockets.map(k=>`${k.level?ordinal(k.level):"cantrip"} ${k.school}${k.echo?` echoing ${k.echo}`:""}${k.gem?(isResonant(r,k)?" ✓ Resonant":" ✓"):""}`).join(", ")}.`)}}
   const geo=s=>{const c={};s.filter(i=>i.kind==="geode").forEach(i=>c[i.size]=(c[i.size]||0)+1);return Object.keys(GEODES).filter(k=>c[k]).map(k=>`${c[k]} ${k}`).join(", ")};
   P("");P(`## Stone`);
   P(`- *The Lucky Landshark*'s hold: ${geo(S.hold)||"no geodes"}`);P(`- Storage Room: ${geo(S.storage)||"no geodes"}`);
@@ -1804,7 +1942,7 @@ function snapshotMD(){
   for(const g of notable.slice(0,25))P(`  - ${g.quality} ${g.type}${g.state==="spell"?`, cut for ${g.spell.name}`:g.state==="plain"?`, ${g.cut} cut`:", rough"}${g.reserved?" (spoken for)":""}`);
   if(S.parts.length)P(`- Hallmark parts on hand: ${S.parts.map(p=>p.kind==="mounting"?`${p.metal} ${BASES[p.base].styles[p.slots]} ${BASE_LABEL[p.base].toLowerCase()}`:p.name).join("; ")}`);
   P("");P(`## Dredge Nodes`);
-  for(const n of S.nodes){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${n.left}/${n.attempts} attempts left${rv.length?`, tags: ${rv.join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
+  for(const n of S.nodes){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${n.left}/${n.attempts} attempts left${rv.length?`, tags: ${rv.map(t=>tagLabel(n,t)).join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
   const found=Object.keys(S.lifetime.found).length;
   P("");P(`## Career`);
   P(`- Commissions delivered: ${S.done.length}${S.done.length?`, most recent: ${S.done.slice(0,3).map(d=>`${d.title} for ${d.who} (${fmtShort(d.day)})`).join("; ")}`:""}`);
@@ -1911,9 +2049,9 @@ function dayMD(dn){
   sec("Passed, expired or cancelled",[...by("pass").map(e=>`Passed on ${oline(e)}`),...by("expire").map(e=>`Expired: ${oline(e)}`),...by("cancel").map(e=>`Cancelled: ${oline(e)}`),...by("missed").map(e=>`Missed the deadline on ${oline(e)}`)]);
   const trips=by("trip"),finds=by("find");
   sec("On the water",[...trips.map(e=>`Sailed out to a Dredge Node (${cr(e.cost)} Metered Mana)${e.tags&&e.tags.length?`, tags: ${e.tags.join(", ")}`:""}`),
-    ...finds.map(e=>`Hauled up ${e.what}${e.kept?"":" — no room, back over the side"}`),...by("home").map(e=>`Returned home${e.moved?` and unloaded ${e.moved} item${e.moved>1?"s":""}`:""}${e.left?` (${e.left} stayed in the hold)`:""}`)]);
+    ...finds.map(e=>`Hauled up ${e.what}${e.kept?"":" — no room, back over the side"}`),...by("coins").map(e=>`${e.why}: ${cr(e.amount)}`),...by("sister").map(e=>e.text),...by("home").map(e=>`Returned home${e.moved?` and unloaded ${e.moved} item${e.moved>1?"s":""}`:""}${e.left?` (${e.left} stayed in the hold)`:""}`)]);
   sec("Workroom",[...by("chisel").map(e=>`Chiseled a ${e.size} geode: ${e.got.join(", ")}`),...by("cut").map(e=>`Cut: ${e.text}`)]);
-  sec("Relics",[...finds.filter(e=>e.relic).map(e=>`Found ${e.what}`),...by("activate").map(e=>`${e.name} woke up`),...by("consign").map(e=>`Consigned ${e.name} to the Registry Salon (Appraised ${cr(e.av)}, opening bid ${cr(e.opening)}, ${e.days} days)`),
+  sec("Relics",[...finds.filter(e=>e.relic).map(e=>`Found ${e.what}`),...by("activate").map(e=>`${e.name} woke up${e.full?" with Full Resonance":e.resonant?` (${e.resonant} Resonant)`:""}`),...by("consign").map(e=>`Consigned ${e.name} to the Registry Salon (Appraised ${cr(e.av)}, opening bid ${cr(e.opening)}, ${e.days} days)`),
     ...by("bid").map(e=>`New Salon bid on ${e.name}: ${cr(e.bid)} (+${cr(e.inc)})`),
     ...by("relicSold").map(e=>e.via==="Salon"?`${e.name} sold at the Salon for ${cr(e.gross)} (${e.pct}% of Appraised Value), ${cr(e.net)} after the house fee and Salvage Royalty`:`Sold ${e.name} (${e.size}, ${e.condition}) to the Survey: ${cr(e.gross)}, ${cr(e.net)} after the Salvage Royalty`),
     ...by("standing").map(e=>`Survey Standing reached Level ${e.level}`)]);
@@ -1968,7 +2106,7 @@ VIEWS.settings=()=>{
    <div class="panel"><h3>Rules &amp; placeholders</h3>
     <p class="small muted">Numbers from the docs are the defaults. Ones marked * are open threads in the docs, picked so the tool runs — change them freely.</p>
     <div class="row">${num("commissionCap","Commission cap")}${num("livesCap","Lives cap")}${num("lifeCost","Life cost")}${num("registration","Base dues / month")}${num("duesPerLevel","+ dues per Rep Level")}${num("referral","Referral %")}${num("fee","Sourcing fee %")}${num("urgentPct","Urgent %")}${num("urgentChance","Urgent chance %")}${num("levyPct","Trade Levy %")}${num("royaltyPct","Salvage Royalty %")}${num("permit","Permit / year")}${num("upkeep","Boat upkeep / month")}${num("surveyBonusPct","Survey bonus % per Standing")}${num("salonFeePct","Salon house fee %")}</div>
-    <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
+    <div class="row" style="margin-top:8px">${num("relicBase","Relic chance %")}${num("relicWreck","+ Wreck %")}${num("relicRuins","+ Ruins %")}${num("relicPlanar","+ Planar Seam %")}${num("resonantPct","Resonant socket %")}${num("fullResonancePct","Full Resonance %")}${num("condShift","Condition shift per Wreck/Ruins tag*")}${num("crackChance","Cracked gem %*")}${num("spellLevelBase","Base spell level*")}${num("precisionPerSpellLevel","Precision per spell level*")}</div>
     <hr class="rule"><h4>Perk thresholds &amp; max ranks*</h4>
     <table>${PERKS.map(p=>`<tr><td>${p.name}</td><td><label class="small">${p.stat} ≥ <input type="number" data-perk="${p.id}" data-f="t" value="${C.perks[p.id].t}" style="width:60px"></label></td><td><label class="small">max <input type="number" data-perk="${p.id}" data-f="max" value="${C.perks[p.id].max}" style="width:60px"></label></td></tr>`).join("")}</table>
     <hr class="rule"><h4>Gem base prices</h4><p class="tiny muted">From the doc's Gem Catalogue. One number per gem, inside its rarity's range.</p>
@@ -2059,9 +2197,9 @@ document.addEventListener("change",e=>{
     const file=t.files[0];if(!file)return;file.text().then(txt=>{
       try{const j=JSON.parse(txt);
         if(t.id==="impSave"){S=migrate(j);lsSet(LS.dirty,true);commit();toast("Save imported.")}
-        else if(t.id==="impSpells"){DB.spells=j.spells||j;lsSet(LS.db,DB);toast(`${DB.spells.length} spells loaded.`);render()}
+        else if(t.id==="impSpells"){DB.spells=j.spells||j;ensureEchoes();lsSet(LS.db,DB);toast(`${DB.spells.length} spells loaded.`);render()}
         else if(t.id==="impFactions"){setFactions(j);lsSet(LS.db,DB);toast("Factions loaded.");render()}
-        else{DB.relics=j.relics||j;relinkLifetime();lsSet(LS.db,DB);toast(`${DB.relics.length} relics loaded.`);render()}
+        else{DB.relics=j.relics||j;relinkLifetime();ensureEchoes();lsSet(LS.db,DB);toast(`${DB.relics.length} relics loaded.`);render()}
       }catch(err){toast("That file isn't valid JSON.")}});
   }
 });
@@ -2091,7 +2229,7 @@ async function ghConnect(){
   DB=lsGet(LS.db,{spells:[],relics:[]});
   const local=lsGet(LS.save,null);
   if(local)S=migrate(local);else newGame();
-  relinkLifetime();
+  relinkLifetime();ensureEchoes();
   render();
   if(GH.ready()){
     syncState="busy";syncMsg="Syncing…";renderStatus();
