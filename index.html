@@ -1405,7 +1405,19 @@ const PLACEHOLDER_ICON="data:image/svg+xml,"+encodeURIComponent('<svg xmlns="htt
 const iconSrc=d=>(d&&d.icon&&ICONS[d.icon])||PLACEHOLDER_ICON;
 const LS={save:"fff.save",gh:"fff.gh",db:"fff.db",dirty:"fff.dirty",synced:"fff.syncedAt",sha:"fff.saveSha"};
 function lsGet(k,d){try{const v=localStorage.getItem(k);return v==null?d:JSON.parse(v)}catch{return d}}
-function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v))}catch(e){console.warn(e)}}
+function lsSet(k,v){try{localStorage.setItem(k,JSON.stringify(v));return true}catch(e){console.warn(e);return false}}
+// Icons and their versions are stored together, so the browser can never keep an old picture while thinking it has the new one.
+// If the icons don't fit in browser storage, they aren't cached at all (they re-download each visit) and the save keeps its room.
+let ICON_SHA={};
+function saveIcons(){
+  const pack={};for(const f in ICONS)pack[f]={uri:ICONS[f],sha:ICON_SHA[f]||null};
+  if(!lsSet("fff.iconCache",pack)){try{localStorage.removeItem("fff.iconCache")}catch(e){}console.warn("Card icons too large to cache in this browser; they will re-download each visit.")}
+}
+function loadIconCache(){
+  try{localStorage.removeItem("fff.icons");localStorage.removeItem("fff.iconSha")}catch(e){} // old two-key cache
+  ICONS={};ICON_SHA={};const pack=lsGet("fff.iconCache",{});
+  for(const f in pack){ICONS[f]=pack[f].uri;ICON_SHA[f]=pack[f].sha}
+}
 let syncState="off",syncMsg="Not connected",pushTimer=null;
 function saveLocal(dirty){lsSet(LS.save,S);if(dirty){lsSet(LS.dirty,true);if(GH.ready()){syncState="dirty";syncMsg="Unsynced changes";if(GH.mode()==="change"){clearTimeout(pushTimer);pushTimer=setTimeout(()=>GH.pushSave(),12000)}}}}
 const b64enc=s=>{const b=new TextEncoder().encode(s);let bin="";for(let i=0;i<b.length;i+=0x8000)bin+=String.fromCharCode.apply(null,b.subarray(i,i+0x8000));return btoa(bin)};
@@ -1435,10 +1447,18 @@ const GH={
     return `data:${ICON_MIME[ext]||"application/octet-stream"};base64,${b64}`;
   },
   async loadIcons(){
-    const want=[...new Set((DB.cards||[]).map(c=>c.icon).filter(Boolean))].filter(f=>!ICONS[f]);
+    // One call lists card-icons/ with each file's version (sha); re-download any icon that is new or changed.
+    const shas=ICON_SHA;
+    const r=await fetch(this.url("card-icons",true),{headers:this.headers(),cache:"no-store"});
+    const list=r.ok?await r.json():[];const remote={};
+    if(Array.isArray(list))for(const f of list)if(f.type==="file")remote[f.name]=f.sha;
     DB.iconMissing=[];
-    for(const f of want){try{const u=await this.getFile("card-icons/"+f);if(u)ICONS[f]=u;else DB.iconMissing.push(f)}catch(e){console.warn(e)}}
-    lsSet("fff.icons",ICONS);
+    for(const f of [...new Set((DB.cards||[]).map(c=>c.icon).filter(Boolean))]){
+      if(!remote[f]){if(!ICONS[f])DB.iconMissing.push(f);continue}
+      if(ICONS[f]&&shas[f]===remote[f])continue;
+      try{const u=await this.getFile("card-icons/"+f);if(u){ICONS[f]=u;shas[f]=remote[f]}}catch(e){console.warn(e)}
+    }
+    saveIcons();
   },
   async put(path,data,sha,message){
     const c=this.cfg();
@@ -2333,7 +2353,7 @@ document.addEventListener("change",e=>{
   if(t.id==="hmBase"){UI.hmBase=t.value;UI.hmSlots=BASES[t.value].min;render();return}
   if(t.id==="hmSlots"){UI.hmSlots=+t.value;render();return}
   if(t.id==="hmMetal"){UI.hmMetal=t.value;render();return}
-  if(t.id==="impIcons"){const fs=[...t.files];Promise.all(fs.map(f=>new Promise(res=>{const rd=new FileReader();rd.onload=()=>{ICONS[f.name]=rd.result;res()};rd.readAsDataURL(f)}))).then(()=>{lsSet("fff.icons",ICONS);toast(`${fs.length} card icon${fs.length>1?"s":""} loaded.`);render()});return}
+  if(t.id==="impIcons"){const fs=[...t.files];Promise.all(fs.map(f=>new Promise(res=>{const rd=new FileReader();rd.onload=()=>{ICONS[f.name]=rd.result;ICON_SHA[f.name]=null;res()};rd.readAsDataURL(f)}))).then(()=>{saveIcons();toast(`${fs.length} card icon${fs.length>1?"s":""} loaded.`);render()});return}
   if(t.id==="impSave"||t.id==="impSpells"||t.id==="impRelics"||t.id==="impFactions"||t.id==="impCards"){
     const file=t.files[0];if(!file)return;file.text().then(txt=>{
       try{const j=JSON.parse(txt);
@@ -2368,7 +2388,7 @@ async function ghConnect(){
    ================================================================ */
 (async function boot(){
   const th=lsGet("fff.theme","auto");if(th!=="auto")document.documentElement.dataset.theme=th;
-  DB=Object.assign({spells:[],relics:[],cards:[],cardCredits:[]},lsGet(LS.db,{}));ICONS=lsGet("fff.icons",{});
+  DB=Object.assign({spells:[],relics:[],cards:[],cardCredits:[]},lsGet(LS.db,{}));loadIconCache();
   const local=lsGet(LS.save,null);
   if(local)S=migrate(local);else newGame();
   relinkLifetime();ensureEchoes();
