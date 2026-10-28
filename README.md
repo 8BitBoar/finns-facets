@@ -27,6 +27,8 @@ The token is stored only in that browser. Do it once per device (laptop, iPhone)
 ## Daily loop
 
 1. **Sea** — tap a Dredge Node, sail out (pay its fuel), dredge until the node fades or the hold fills, return home to unload. Tags roll in tiers (Common 70%, Uncommon 22%, Rare 7%, Legendary 1%); the **Tag guide** under the map lists every tag and Wave-Touched sister.
+   - **Weather:** one condition a day for the whole map, shown on the Sea tab with a 7-day forecast (the first 3 days certain, the rest guesses) and a **Weather guide**. Seasons tilt which weather rolls.
+   - **Hull:** *The Lucky Landshark* has 100 Hull. Storm Front and rough weather cost Hull per attempt; a Gale costs it on the way out. It repairs +20 each night, or pay 2 Cr a point at the boathouse. At 0 the boat sinks: with a life, you respawn at the dock with the hold intact; with no lives, the hold is lost, a 500 Cr salvage tow is charged (any shortfall is owed and paid off nightly) and the boat is out for 2 days.
 2. **Workroom** — chisel geodes, then cut stones plain or with a spell — or grind rough Crude gems into Gem Dust for Perk Packs.
 3. **Work Orders** — accept offers, fill each slot from inventory (or "Cut from rough" straight into a slot, "Order parts" for mountings/ornaments), assemble, pack, send.
 4. **Relics** — socket matching spell-cut gems (the socket's echoed spell makes it Resonant, +2% each, +5% more for Full Resonance); once active, crate it, then sell it to the Survey (instant, with a Survey Standing bonus and a monthly limit) or consign it to the Registry Salon auction (bids each night, sells after 4–7 days).

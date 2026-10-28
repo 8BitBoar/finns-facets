@@ -141,6 +141,14 @@ th{font-size:.78rem;text-transform:uppercase;letter-spacing:.06em;color:var(--in
 
 .bar{height:9px;background:var(--line);border-radius:5px;overflow:hidden}
 .bar i{display:block;height:100%;background:linear-gradient(90deg,var(--verd),var(--verd-l))}
+.bar.warnbar i{background:linear-gradient(90deg,#9c3b2f,#d9714f)}
+.pill.warn{border-color:#d9714f;color:#ffc3ad}
+.forecast{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:4px;margin:6px 0}
+.fc{border:1px solid var(--line);border-radius:8px;padding:5px 2px;text-align:center;line-height:1.15;overflow:hidden}
+.fc .tiny{overflow-wrap:anywhere;font-size:.68rem}
+.fc.today{border-color:var(--brass);background:rgba(201,162,39,.10)}
+.fc.guess{border-style:dashed;opacity:.72}
+.fci{font-size:1.25rem;margin:2px 0}
 .bar.brass i{background:linear-gradient(90deg,var(--brass-d),var(--brass-l))}
 
 .log{max-height:430px;overflow:auto;font-size:.88rem}
@@ -272,7 +280,25 @@ const SISTERS={
  "Kólga":"Dead Calm: travel time halved, tag surcharges halved (rounded down), −5 min per attempt",
 };
 const TAG_CONFLICTS={Shallows:["Deep","Storm Front","Trench","Rán's Net"],"Kelp Forest":["Trench"]}; // a Teeming Waters third tag never contradicts the first two
-const RARITY_SHIFT={Deep:[-15,0,8,7],"Storm Front":[-5,0,2,3],Shallows:[15,-5,-7,-3]}; // Common, Uncommon, Rare, Mythic Rare
+const RARITY_SHIFT={Deep:[-15,0,8,7],"Storm Front":[-5,0,2,3],Shallows:[15,-5,-7,-3],Squalls:[-5,0,2,3]}; // Common, Uncommon, Rare, Mythic Rare
+/* Weather: one condition a day for the whole map. base = weight before seasons; rare ones are a flat ~1% each. */
+const WEATHER={
+ "Clear Skies":{icon:"☀️",base:15,up:"Neutral",down:"Neutral"},
+ "Overcast":{icon:"☁️",base:15,up:"Neutral",down:"Neutral"},
+ "Fog":{icon:"🌫️",base:7,up:"+1 attempt per node (fewer boats out)",down:"All tags hidden, like Fog Bank everywhere"},
+ "Squalls":{icon:"🌧️",base:7,up:"Gem rarity: Common −5, Rare +2, Mythic Rare +3 (stacks with Storm Front)",down:"−5 Hull per attempt"},
+ "Gale":{icon:"💨",base:7,up:"Geodes come up 1 size larger",down:"+3 Cr fuel per trip; −10 Hull per trip out"},
+ "Spring Tide":{icon:"🌊",base:7,up:"+1 attempt and +2% relic odds (seabed exposed)",down:"−5 Hull per attempt (rocks)"},
+ "Doldrums":{icon:"〰️",base:7,up:"Fine +5%, Perfect +5% (clear, still water)",down:"Travel time out +50%"},
+ "Plankton Bloom":{icon:"🦐",base:7,up:"Shark Run tags 3× as likely on new nodes",down:"Fine −5%, Perfect −5% (murky water)"},
+ "Cold Snap":{icon:"❄️",base:7,up:"Rich tags 3× as likely on new nodes",down:"−3 Hull per attempt; 1 node hidden for the day"},
+ "Mana Tide":{icon:"💫",base:7,up:"Spell cuts and re-attunement cost half Metered Mana",down:"Compass drifts: +15 min travel per trip out"},
+ "Rán's Temper":{icon:"🌀",rare:1,up:"Legendary tag odds tripled (1% → 3%) on new nodes; every relic at least Slightly Worn",down:"−15 Hull per attempt"},
+ "Storm's Blessing":{icon:"🌈",rare:1,up:"No Hull damage from anything, Storm Front included (its gem odds still apply)",down:"Nothing extra either"},
+};
+const SEASONS={Spring:["Fog","Spring Tide","Plankton Bloom"],Summer:["Clear Skies","Doldrums","Squalls"],Autumn:["Gale","Squalls","Fog"],Winter:["Cold Snap","Gale","Mana Tide"]};
+const SEASON_FAVOR=2.5,FORECAST_DAYS=7,GUESS_HOLDS=60;
+const HULL_DMG_ATTEMPT={Squalls:5,"Spring Tide":5,"Cold Snap":3,"Rán's Temper":15};
 const GEODES={Pebble:{space:1,max:1,chisel:10},Fist:{space:2,max:2,chisel:15},Melon:{space:4,max:3,chisel:30},Boulder:{space:6,max:5,chisel:45}};
 const RELIC_SIZES={Small:{space:4,crate:10,standing:1,auction:4},Medium:{space:6,crate:15,standing:2,auction:5},Large:{space:8,crate:20,standing:3,auction:6},Monumental:{space:12,crate:30,standing:5,auction:7}};
 const OLD_RELIC_RANGES={Small:[100,200],Medium:[250,400],Large:[500,800],Monumental:[1000,1500]};
@@ -307,7 +333,8 @@ const DUST_BY_RARITY={Common:1,Uncommon:2,Rare:5,"Mythic Rare":10};
 const PERK_PACK_COST=10,DUP_REFUND=5;
 const EFFECT_TEXT={holdSpace:"+{v} trawler hold space",storageSpace:"+{v} home storage",nodeAttempts:"+{v} attempt per Dredge Node",nodesVisible:"+{v} Dredge Node visible at once",
  fuelDiscount:"−{v} Cr per trawler trip (minimum 1)",sonarReveal:"Reveals {v} tag per node (rank 3: all tags)",thirdTagPct:"+{v}% chance a two-tag node rolls a third tag",
- resonantSocketPct:"+{v}% per Resonant relic socket",fullResonancePct:"+{v}% Full Resonance bonus",commissionCap:"+{v} active commission",livesCap:"+{v} to the lives cap"};
+ resonantSocketPct:"+{v}% per Resonant relic socket",fullResonancePct:"+{v}% Full Resonance bonus",commissionCap:"+{v} active commission",livesCap:"+{v} to the lives cap",
+ maxHull:"+{v} max Hull",hullRepair:"+{v} daily Hull repair",forecastDays:"+{v} certain forecast day (up to all 7)"};
 const cardDef=id=>(DB.cards||[]).find(c=>c.id===id);
 const cardCost=(d,rank)=>d.signature?(d.cost||2):rank;
 function eff(type){let t=0;for(const [id,c] of Object.entries(S.cards||{})){const d=cardDef(id);if(d&&c.equip>0&&d.effect&&d.effect.type===type)t+=(d.effect.perRank||0)*(d.signature?1:c.equip)}return t}
@@ -363,7 +390,7 @@ const DEFAULT_CONFIG={
  startCredits:1000, livesCap:3, lifeCost:2500,
  commissionCap:3, registration:20, referral:5, fee:25, urgentPct:50, urgentChance:15,
  relicBase:1, relicWreck:2, relicRuins:2, condShift:10, crackChance:10,
- levyPct:5, royaltyPct:10, permit:100, upkeep:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5, relicPlanar:2, resonantPct:2, fullResonancePct:5,
+ levyPct:5, royaltyPct:10, permit:100, upkeep:50, maxHull:100, hullRepair:20, repairCost:2, salvageTow:500, salvageDays:2, respawnHull:50, duesPerLevel:5, surveyBonusPct:2, salonFeePct:5, relicPlanar:2, resonantPct:2, fullResonancePct:5,
  spellLevelBase:1, precisionPerSpellLevel:2,
  gemPrices:{...DEFAULT_GEM_PRICES},
 };
@@ -422,13 +449,13 @@ let UI={codex:"spells",cxSchool:"",cxLevel:"",cxQ:"",tab:"sea",selNode:null,vaul
 function cfg(){return S.config}
 function newGame(startDN){
   const s={
-    version:9, meta:{savedAt:Date.now(),created:Date.now()},
+    version:10, meta:{savedAt:Date.now(),created:Date.now()},
     clock:{day:startDN??todayDN(),min:420},
     lifetime:{cut:{},found:{},sold:{},best:{},earned:{}},
     credits:DEFAULT_CONFIG.startCredits, wallet:0,
     location:"home", pos:null,
     xp:0, level:0, statPoints:0, stats:{insight:1,precision:1,renown:1},
-    cards:{}, dust:0, packs:[{kind:"starter",count:3}], lives:1,
+    cards:{}, dust:0, packs:[{kind:"starter",count:3}], lives:1, hull:100, wx:{}, towOwed:0,
     patterns:Object.fromEntries(SCHOOLS.map(s=>[s,true])),
     nodes:[], hold:[], storage:[], gems:[], parts:[], relics:[],
     factions:Object.fromEntries(FACTIONS.map(f=>[f.key,{rp:0,level:0,registered:false,autoRenew:false}])),
@@ -439,6 +466,7 @@ function newGame(startDN){
   S=s;
   s.partner=newPartner();
   s.payroll=[finnRow(s.clock.day)];
+  ensureWeather();
   fillNodes();
   addLog("Finn opens the shop with 1,000 Cr of starting liquidity from Emma Frost's 883,000 Cr investment. Register with a faction to start getting commissions.");
   payPermit();
@@ -496,6 +524,12 @@ function migrate(s){
     s.dust=s.dust||0;s.packs=s.packs||(Object.keys(s.cards).length?[]:[{kind:"starter",count:3}]);
     s.version=9;
   }
+  if(s.version<10){ // Hull, weather and the forecast
+    s.config.maxHull=s.config.maxHull??100;
+    if(s.hull==null)s.hull=s.config.maxHull;s.wx=s.wx||{};s.towOwed=s.towOwed||0;
+    s.version=10;
+  }
+  {const keep=S;S=s;ensureWeather();S=keep}
   if(!s.lifetime){
     s.lifetime={cut:{},found:{},sold:{},best:{},earned:{}};
     const L=s.lifetime,idByName=n=>(DB.relics.find(r=>r.name===n)||{}).id||n;
@@ -605,6 +639,9 @@ const storageCap=()=>60+eff("storageSpace");
 const nodesVisible=()=>3+eff("nodesVisible");
 const livesCap=()=>cfg().livesCap+eff("livesCap");
 const commissionCap=()=>cfg().commissionCap+eff("commissionCap");
+const maxHull=()=>(cfg().maxHull??100)+eff("maxHull");
+const hullRepair=()=>(cfg().hullRepair??20)+eff("hullRepair");
+const boatOut=()=>S.boatOutUntil!=null&&S.clock.day<=S.boatOutUntil;
 const maxSpellLevel=()=>Math.min(9,cfg().spellLevelBase+Math.floor(S.stats.precision/Math.max(1,cfg().precisionPerSpellLevel)));
 const gemPrice=t=>cfg().gemPrices[t]??DEFAULT_GEM_PRICES[t];
 const gemValue=(t,q)=>gemPrice(t)*QUALITY[q].mod;
@@ -627,15 +664,77 @@ const nodeById=id=>S.nodes.find(n=>n.id===id);
 const hasTag=(n,t)=>(n.tags||[]).includes(t);
 const sisterOf=n=>hasTag(n,"Wave-Touched")?n.wave:null;
 function tripCost(n){
-  if(S.freeTrip)return 0; // Hrönn pushed the boat along
+  if(S.freeTrip)return 0; // Hrönn pushed the boat along — free even in a Gale
   let sur=(n.tags||[]).reduce((s,t)=>s+(TAGS[t]?TAGS[t].fee:0),0);
   if(sisterOf(n)==="Kólga")sur=Math.floor(sur/2);
-  return Math.max(1,5+sur-eff("fuelDiscount"));
+  return Math.max(1,5+sur+(wxNow()==="Gale"?3:0)-eff("fuelDiscount"));
 }
-const tripTime=n=>{const t=30+15*n.tags.length;return sisterOf(n)==="Kólga"?Math.round(t/2):t};
+const tripTime=n=>{let t=30+15*n.tags.length;if(sisterOf(n)==="Kólga")t/=2;const w=wxNow();if(w==="Doldrums")t*=1.5;if(w==="Mana Tide")t+=15;return Math.round(t)};
 const attemptTime=n=>20+(hasTag(n,"Storm Front")?10:0)+(sisterOf(n)==="Uðr"?10:0)-(sisterOf(n)==="Kólga"?5:0);
 const tagLabel=(n,t)=>t==="Wave-Touched"&&n.wave?`Wave-Touched (${n.wave})`:t;
 const tagLean=(n,t)=>t==="Wave-Touched"&&n.wave?SISTERS[n.wave]:TAGS[t]?TAGS[t].lean:"";
+
+/* ================================================================
+   WEATHER & FORECAST
+   ================================================================ */
+function seasonOf(dn){const m=new Date(dn*DAY_MS).getUTCMonth();return m>=2&&m<=4?"Spring":m<=7&&m>=5?"Summer":m>=8&&m<=10?"Autumn":"Winter"}
+function rollWeather(dn,not){
+  const fav=SEASONS[seasonOf(dn)],r=Math.random()*100;
+  if(r<1&&not!=="Rán's Temper")return "Rán's Temper";
+  if(r<2&&not!=="Storm's Blessing")return "Storm's Blessing";
+  return wpick(Object.entries(WEATHER).filter(([k,v])=>v.base&&k!==not).map(([k,v])=>[k,v.base*(fav.includes(k)?SEASON_FAVOR:1)]));
+}
+const certainDays=()=>Math.min(FORECAST_DAYS,3+eff("forecastDays"));
+function ensureWeather(){ // keeps a 7-day window: the first days are certain, the rest are guesses until they come into range
+  S.wx=S.wx||{};const t=S.clock.day,sure=certainDays();
+  for(const k of Object.keys(S.wx))if(+k<t||+k>=t+FORECAST_DAYS)delete S.wx[k];
+  for(let i=0;i<FORECAST_DAYS;i++){const d=t+i;let e=S.wx[d];
+    if(!e){S.wx[d]=e={w:rollWeather(d),sure:i<sure};continue}
+    if(!e.sure&&i<sure){if(Math.random()*100>=GUESS_HOLDS)e.w=rollWeather(d,e.w);e.sure=true}}
+  if(S.wx[t].w==="Cold Snap"){if(!S.coldHidden||S.coldHidden.day!==t){const pool=S.nodes.filter(n=>n.id!==S.location);S.coldHidden={day:t,id:pool.length?pick(pool).id:null}}}
+  else S.coldHidden=null;
+}
+const wxNow=()=>{const e=S&&S.wx&&S.wx[S.clock.day];return e?e.w:"Clear Skies"};
+const wxIcon=w=>(WEATHER[w]||{}).icon||"";
+const nodeHidden=n=>!!(S.coldHidden&&S.coldHidden.day===S.clock.day&&S.coldHidden.id===n.id);
+const visibleNodes=()=>S.nodes.filter(n=>!nodeHidden(n));
+function hullHit(amount,why){ // returns true if the boat sank
+  if(!(amount>0))return false;
+  if(wxNow()==="Storm's Blessing"){return false}
+  S.hull=Math.max(0,S.hull-amount);
+  if(S.hull<=0){sink(why);return true}
+  return false;
+}
+function sink(why){
+  const node=nodeById(S.location);
+  if(S.lives>0){
+    S.lives--;S.location="home";S.pos=null;S.hull=Math.min(maxHull(),cfg().respawnHull??50);
+    const u=unload();
+    addLog(`The Lucky Landshark went down (${why}). One life spent — Finn and the boat respawn at the dock with Hull ${S.hull}, and everything in the hold came back with her.`);
+    ev("sink",{why,life:true,moved:u.moved});toast("The boat sank! A life was spent — you respawned at the dock with the hold intact.");
+  }else{
+    const lost=S.hold.length;S.hold=[];S.location="home";S.pos=null;
+    const tow=cfg().salvageTow??500,paid=r2(Math.min(tow,Math.max(0,S.credits)));
+    if(paid>0)money(-paid,"Salvage tow — The Lucky Landshark");
+    S.towOwed=r2((S.towOwed||0)+tow-paid);
+    S.boatOutUntil=S.clock.day+(cfg().salvageDays??2);S.hull=Math.min(maxHull(),cfg().respawnHull??50);
+    addLog(`The Lucky Landshark went down (${why}) with no lives to spare. Finn swims home fine — the sharks keep her company — but the hold (${lost} item${lost===1?"":"s"}) is Rán's now. Salvage tow ${cr(tow)}${S.towOwed>0?`, ${cr(S.towOwed)} still owed`:""}; the boat is out until ${fmtShort(S.boatOutUntil+1)}.`);
+    ev("sink",{why,life:false,lost,tow,owed:S.towOwed});toast("The boat sank with no lives left — the hold is lost and the boat is out for 2 days.");
+  }
+  if(node)UI.selNode=null;
+}
+function repairHull(points){
+  if(!atHome()){toast("Repairs happen at the boathouse.");return}
+  const need=maxHull()-S.hull,pts=Math.min(need,points??need);if(pts<=0){toast("The hull is already at full.");return}
+  const c=pts*(cfg().repairCost??2);
+  act(0,()=>{if(!pay(c,`Hull repair — ${pts} point${pts>1?"s":""}`))return false;S.hull+=pts;ev("repair",{pts,cost:c})},`Repaired the hull: +${pts} (${cr(c)})`);
+}
+function payTow(){ // nightly, like payroll: an unpaid salvage tow is paid off as money comes in
+  if(!(S.towOwed>0))return [];
+  const p=r2(Math.min(S.towOwed,Math.max(0,S.credits)));if(p<=0)return [`Salvage tow: ${cr(S.towOwed)} still owed.`];
+  money(-p,"Salvage tow — The Lucky Landshark (owed)");S.towOwed=r2(S.towOwed-p);
+  return [S.towOwed>0?`Paid ${cr(p)} toward the salvage tow; ${cr(S.towOwed)} still owed.`:`Paid off the salvage tow (${cr(p)}).`];
+}
 
 /* ================================================================
    LOG / LEDGER / CLOCK
@@ -679,8 +778,12 @@ function commit(){S.meta.savedAt=Date.now();saveLocal(true);render()}
 /* ================================================================
    DREDGING
    ================================================================ */
-function rollTag(exclude){ // tier first (Common 70 / Uncommon 22 / Rare 7 / Legendary 1), then a tag in that tier
-  for(let i=0;i<50;i++){const tier=wpick(TAG_TIERS),pool=Object.keys(TAGS).filter(t=>TAGS[t].tier===tier&&!exclude.includes(t));if(pool.length)return pick(pool)}
+function rollTag(exclude){ // tier first (Common 70 / Uncommon 22 / Rare 7 / Legendary 1), then a tag in that tier; today's weather can tilt it
+  const w=wxNow(),tiers=w==="Rán's Temper"?{Common:68,Uncommon:22,Rare:7,Legendary:3}:TAG_TIERS;
+  const boost=(w==="Plankton Bloom"&&"Shark Run")||(w==="Cold Snap"&&"Rich")||null;
+  // weight that makes the boosted tag exactly 3× as likely within its tier: w/(w+k−1) = 3/k
+  const tw=(t,k)=>t===boost?(k>3?3*(k-1)/(k-3):50):1;
+  for(let i=0;i<50;i++){const tier=wpick(tiers),pool=Object.keys(TAGS).filter(t=>TAGS[t].tier===tier&&!exclude.includes(t));if(pool.length)return wpick(pool.map(t=>[t,tw(t,pool.length)]))}
   return pick(Object.keys(TAGS).filter(t=>!exclude.includes(t)));
 }
 function rollAttempts(tags,wave){
@@ -706,17 +809,21 @@ function fillNodes(){
   S.echoQueue=[];
   while(S.nodes.length<nodesVisible())S.nodes.push(genNode());
 }
-function revealed(n){if(hasTag(n,"Fog Bank"))return [];const k=eff("sonarReveal");return k>=3?n.revealOrder.slice():n.revealOrder.slice(0,k)}
+function revealed(n){if(hasTag(n,"Fog Bank")||wxNow()==="Fog")return [];const k=eff("sonarReveal");return k>=3?n.revealOrder.slice():n.revealOrder.slice(0,k)}
 
 function sail(id){
   const n=nodeById(id);if(!n)return;
   if(S.location===id)return;
-  const c=tripCost(n),free=!!S.freeTrip;
+  if(boatOut()){toast(`The Lucky Landshark is at the boathouse until ${fmtShort(S.boatOutUntil+1)}.`);return}
+  if(nodeHidden(n)){toast("The Cold Snap hides that node today.");return}
+  const c=tripCost(n),free=!!S.freeTrip,w=wxNow();
   act(tripTime(n),()=>{
     if(c>0&&!pay(c,`Metered Mana — trawler trip`))return false;
     if(free){S.freeTrip=false;addLog("Hrönn's wave carries the boat out — no fuel needed.")}
-    S.location=id;S.pos=null;ev("trip",{cost:c,tags:revealed(n).map(t=>tagLabel(n,t))});
+    S.location=id;S.pos=null;ev("trip",{cost:c,tags:revealed(n).map(t=>tagLabel(n,t)),wx:w});
+    if((w==="Fog"||w==="Spring Tide")&&n.wxBonus!==S.clock.day){n.wxBonus=S.clock.day;n.left++;n.attempts++;addLog(`${w}: +1 attempt at this node today.`)}
     if(!n.arrived){n.arrived=true;arrive(n)}
+    if(w==="Gale")hullHit(10,"Gale on the way out");
   },`Sailed to a Dredge Node (${cr(c)})`);
 }
 function arrive(n){ // one-time effects when she first reaches a node
@@ -747,14 +854,15 @@ function unloadNow(){
 function rollEcho(school,level){const pool=DB.spells.filter(s=>s.school===school&&s.level===level);return pool.length?pick(pool).name:null}
 function rollDredge(n){
   const T=n.tags,c=cfg(),w8=sisterOf(n);
-  const relicChance=c.relicBase+(T.includes("Wreck")?c.relicWreck:0)+(T.includes("Ruins")?c.relicRuins:0)+(T.includes("Planar Seam")?c.relicPlanar:0);
+  const wx=wxNow();
+  const relicChance=c.relicBase+(T.includes("Wreck")?c.relicWreck:0)+(T.includes("Ruins")?c.relicRuins:0)+(T.includes("Planar Seam")?c.relicPlanar:0)+(wx==="Spring Tide"?2:0);
   if(DB.relics.length&&Math.random()*100<relicChance){
     const size=wpick(T.includes("Ruins")?{Small:25,Medium:35,Large:25,Monumental:15}:{Small:50,Medium:30,Large:15,Monumental:5});
     let pool=DB.relics.filter(r=>r.size===size);if(!pool.length)pool=DB.relics;
     const R=pick(pool);
     const shifts=(T.includes("Wreck")?1:0)+(T.includes("Ruins")?1:0),sh=c.condShift;
     const odds={Damaged:50-sh*shifts,"Slightly Worn":35+sh/2*shifts,Pristine:15+sh/2*shifts};
-    if(w8==="Hrönn")odds.Damaged=0;
+    if(w8==="Hrönn"||wx==="Rán's Temper")odds.Damaged=0;
     const planar=T.includes("Planar Seam");
     return {id:nid("r"),kind:"relic",relicId:R.id,name:R.name,size:R.size,base:planar?r2(R.base*1.5):R.base,planar,description:R.description,condition:wpick(odds),
             sockets:R.sockets.map(s=>({school:s.school,level:s.level,echo:s.echo||rollEcho(s.school,s.level),gem:null})),stage:"dormant"};
@@ -766,9 +874,10 @@ function rollDredge(n){
   let i=sizes.indexOf(wpick(w));
   const first=!n.firstGeode;
   if(w8==="Hefring")i=Math.min(3,i+1);
+  if(wx==="Gale")i=Math.min(3,i+1);
   if(first&&T.includes("Shark Run"))i=Math.max(1,i);
   if(T.includes("Kelp Forest"))i=Math.min(1,i); // the cap wins
-  return {id:nid("g"),kind:"geode",size:sizes[i],tags:T.slice(),wave:w8,first};
+  return {id:nid("g"),kind:"geode",size:sizes[i],tags:T.slice(),wave:w8,first,wx}; // wx: the weather it came up in shapes its gems
 }
 function haul(it){
   const what=it.kind==="relic"?`a ${it.size} relic — ${it.name} (${it.condition})${it.planar?", shimmering with another plane":""}`:`a ${it.size} geode`;
@@ -791,6 +900,11 @@ function dredge(){
     const coin=(p,lo,hi,why)=>{if(Math.random()<p){const v=rint(lo,hi);money(v,why);addLog(`${why}: +${cr(v)}.`);ev("coins",{amount:v,why})}};
     if(hasTag(n,"Coin Scatter"))coin(.2,1,10,"Loose coins from old spilled cargo");
     if(w8==="Bylgja")coin(.3,5,15,"Party leftovers from Bylgja");
+    const dmg=(hasTag(n,"Storm Front")?3:0)+(HULL_DMG_ATTEMPT[wxNow()]||0);
+    if(dmg&&hullHit(dmg,[hasTag(n,"Storm Front")?"Storm Front":null,HULL_DMG_ATTEMPT[wxNow()]?wxNow():null].filter(Boolean).join(" and "))){
+      if(n.left===0){S.nodes=S.nodes.filter(x=>x!==n);if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true})}}
+      return;
+    }
     if(n.left===0){
       S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;
       if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true});addLog("The Dredge Node fades — but it hums like it'll be back tomorrow.")}
@@ -809,10 +923,11 @@ function toss(where,id){
    CHISEL & CUT
    ================================================================ */
 function rollGem(src,firstGem){ // src: a geode (tags, wave, first) or a plain tag list
-  const geo=Array.isArray(src)?{tags:src}:src,tags=geo.tags||[],wave=geo.wave||null;
+  const geo=Array.isArray(src)?{tags:src}:src,tags=geo.tags||[],wave=geo.wave||null,gwx=geo.wx||null;
   const better=tags.includes("Deep")||tags.includes("Storm Front")||tags.includes("Rán's Net");
   const rw=[...RARITIES.map(r=>RARITY_ODDS[r])];
   for(const t of ["Deep","Storm Front","Shallows"])if(tags.includes(t)&&!(t==="Shallows"&&better))RARITY_SHIFT[t].forEach((d,i)=>rw[i]+=d);
+  if(gwx==="Squalls")RARITY_SHIFT.Squalls.forEach((d,i)=>rw[i]+=d);
   let rarW=Object.fromEntries(RARITIES.map((r,i)=>[r,Math.max(0,rw[i])]));
   if(firstGem&&geo.first&&tags.includes("Rán's Net"))rarW={Common:0,Uncommon:0,Rare:rarW.Rare||15,"Mythic Rare":rarW["Mythic Rare"]||5};
   const rar=wpick(rarW);
@@ -824,6 +939,8 @@ function rollGem(src,firstGem){ // src: a geode (tags, wave, first) or a plain t
     return [g,w]});
   let q={Crude:70,Fine:25,Perfect:5};
   if(tags.includes("Glimmer")){q.Fine+=5;q.Perfect+=5;q.Crude-=10}
+  if(gwx==="Doldrums"){q.Fine+=5;q.Perfect+=5;q.Crude-=10}
+  if(gwx==="Plankton Bloom"){q.Fine=Math.max(0,q.Fine-5);q.Perfect=Math.max(0,q.Perfect-5);q.Crude+=10}
   if(tags.includes("Rán's Net")){q.Crude-=q.Perfect;q.Perfect*=2}
   if(wave==="Dúfa")q={Crude:80,Fine:0,Perfect:20};
   let quality=wpick(q);
@@ -843,6 +960,7 @@ function chisel(id){
     toast(`Inside: ${got.join(", ")}`);addLog(`Chiseled a ${g.size} geode: ${got.join(", ")}.`);ev("chisel",{size:g.size,got});
   },"Chiseled a geode");
 }
+const spellMana=lv=>r2(spellCost(lv)*.2*(wxNow()==="Mana Tide"?.5:1)); // Metered Mana for a spell cut; Mana Tide halves it
 function canCutSpell(sp){return sp.level<=maxSpellLevel()&&S.patterns[sp.school]}
 function cutPlain(gemId,cut,quiet){
   const g=S.gems.find(x=>x.id===gemId);if(!g||g.state!=="rough")return false;
@@ -866,7 +984,7 @@ function cutSpell(gemId,spellName,quiet){
   const sp=DB.spells.find(s=>s.name===spellName);if(!sp)return false;
   if(!GEMS[g.type].s.includes(sp.school)){toast(`${g.type} has no ${sp.school} affinity.`);return false}
   if(!canCutSpell(sp)){toast(`Finn can't cut that yet — max spell level ${maxSpellLevel()}, and the ${sp.school} pattern must be learned.`);return false}
-  const mana=g.manaCharged?0:r2(spellCost(sp.level)*.2);
+  const mana=g.manaCharged?0:spellMana(sp.level);
   if(mana>0&&!pay(mana,`Metered Mana — ${sp.name} cut`))return false;
   if(g.manaCharged){delete g.manaCharged;addLog(`The ${g.type} was Mana-Charged — the ${sp.name} cut drew no Metered Mana.`)}
   g.state="spell";g.spell={name:sp.name,level:sp.level,school:sp.school};S.lifetime.cut[sp.name]=(S.lifetime.cut[sp.name]||0)+1;
@@ -1123,7 +1241,7 @@ function abandon(oid){
 function startBath(oid,idx){
   const o=findOrder(oid),s=o.slots[idx];if(!atHome()){toast("The Manasonic Bath is at home.");return}
   const sp=s.req.spell;if(!canCutSpell(sp)){toast("Finn needs that spell level and pattern to re-facet it.");return}
-  const mana=r2(spellCost(sp.level)/2*.2);
+  const mana=r2(spellMana(sp.level)/2);
   act(30,()=>{if(!pay(mana,`Metered Mana — Manasonic Bath (${sp.name})`))return false;s.bath="soaking";},`Unset the gem and started a Manasonic Bath soak — finishes overnight`);
 }
 function refacet(oid,idx){
@@ -1298,6 +1416,8 @@ function equipCard(id,rank){
   if(over){const need=statUsed(over);c.equip=old;toast(`Not enough ${STAT_NAME[over]} — that loadout needs ${need}, you have ${S.stats[over]}. Raise ${STAT_NAME[over]} or unequip something.`);render();return}
   addLog(rank?`Equipped ${d.name} at rank ${rank}.`:`Unequipped ${d.name}.`);
   if(d.effect&&d.effect.type==="nodesVisible"&&rank>old)fillNodes();
+  if(S.hull>maxHull())S.hull=maxHull();
+  if(d.effect&&d.effect.type==="forecastDays")ensureWeather();
   commit();
 }
 function recutCard(id){
@@ -1337,6 +1457,9 @@ function overnight(){
   if(!atHome()){S.location="home";S.pos=null;unload();notes.push("Finn sailed home and unloaded.")}
   const oldMonth=monthOf(S.clock.day);
   S.clock.day++;S.clock.min=420;
+  {const before=S.hull;S.hull=Math.min(maxHull(),S.hull+hullRepair());if(S.hull>before&&before<maxHull())notes.push(`Hull repaired overnight: ${S.hull}/${maxHull()}.`)}
+  if(S.boatOutUntil!=null&&S.clock.day===S.boatOutUntil+1){notes.push("The Lucky Landshark is back in the water.");S.boatOutUntil=null}
+  ensureWeather();{const w=wxNow();ev("weather",{w});notes.push(`Weather: ${wxIcon(w)} ${w}.`)}
   // baths
   for(const o of S.orders)for(const s of o.slots)if(s.kind==="bath"&&s.bath==="soaking"){s.bath="soaked";notes.push(`Bath finished for ${s.req.spell.name}.`)}
   // expiries & deadlines
@@ -1345,6 +1468,7 @@ function overnight(){
   for(const o of S.orders)if(o.urgent&&!o.missed&&S.clock.day>o.deadline){o.missed=true;ev("missed",evO(o));notes.push(`Missed the deadline on ${o.title} — no urgency fee, no RP.`)}
   // payroll (a 1st-of-month payday belongs to the month just ended, so it runs before the books close)
   notes.push(...runPayroll());
+  notes.push(...payTow());
   // new month
   const nm=monthOf(S.clock.day);
   if(nm!==oldMonth){
@@ -1388,7 +1512,7 @@ function jumpDate(iso,simulate){
     toast(`Simulated to ${fmtDate(S.clock.day)}.`);
   }else{
     if(!confirm(`Jump to ${fmtDate(target)} without simulating? Nothing happens for the skipped days — no dues, lives, rolls or expiries.`))return;
-    S.clock.day=target;S.clock.min=420;
+    S.clock.day=target;S.clock.min=420;ensureWeather();
     addLog(`— Date set to ${fmtDate(target)} (jumped ${target>from?"forward":"back"} ${Math.abs(target-from)} day${Math.abs(target-from)>1?"s":""}, no simulation).`);
   }
   commit();
@@ -1521,7 +1645,7 @@ const GH={
    RENDER
    ================================================================ */
 const TABS=[["sea","Sea"],["work","Workroom"],["orders","Work Orders"],["relics","Relics"],["hallmark","Hallmark's"],["factions","Factions"],["finn","Finn"],["cards","Perk Cards"],["codex","Codex"],["ledger","Books"],["settings","Settings"]];
-function render(){renderStatus();renderTabs();const fn=VIEWS[UI.tab];$("#view").innerHTML=fn();if(UI.tab==="sea")bindMap()}
+function render(){if(S)ensureWeather();renderStatus();renderTabs();const fn=VIEWS[UI.tab];$("#view").innerHTML=fn();if(UI.tab==="sea")bindMap()}
 function renderStatus(){
   if(!S)return;
   const loc=atHome()?"Lighthouse":S.location==="sea"?"Open water":"At a Dredge Node";
@@ -1535,6 +1659,8 @@ function renderStatus(){
    <span class="pill">Hold <b>${used(S.hold)}/${holdCap()}</b></span>
    <span class="pill">Storage <b>${used(S.storage)}/${storageCap()}</b></span>
    <span class="pill">Lives <b>${S.lives}/${livesCap()}</b></span>
+   <span class="pill ${S.hull<=maxHull()*.3?"warn":""}" title="The Lucky Landshark's Hull">Hull <b>${S.hull}/${maxHull()}</b>${boatOut()?" · in the boathouse":""}</span>
+   <span class="pill" title="${esc(WEATHER[wxNow()].up)} / ${esc(WEATHER[wxNow()].down)}">${wxIcon(wxNow())} ${esc(wxNow())}</span>
    <span class="spacer"></span>
    <span class="pill sync" title="${esc(syncMsg)}"><span class="dot ${dot}"></span>${esc(GH.ready()?syncMsg:"Local only")}</span>`;
 }
@@ -1552,7 +1678,7 @@ const DOCK={x:150,y:300};
 function trawlerPos(){if(atHome())return DOCK;if(S.location==="sea")return S.pos||DOCK;const n=nodeById(S.location);return n?{x:n.x,y:n.y}:DOCK}
 function mapSVG(){
   const tp=trawlerPos(),sel=UI.selNode&&nodeById(UI.selNode);
-  const nodes=S.nodes.map(n=>{
+  const nodes=visibleNodes().map(n=>{
     const rev=revealed(n),hidden=n.tags.length-rev.length;
     const tagTxt=rev.map(t=>TAG_ICON[t]).join(" ")+(hidden?" "+"?".repeat(hidden):"")+(n.echo?" ↺":"");
     return `<g class="node ${UI.selNode===n.id?"sel":""}" data-node="${n.id}" tabindex="0" role="button" aria-label="Dredge Node, ${tripCost(n)} Credits">
@@ -1584,6 +1710,7 @@ function mapSVG(){
    </g>
    <rect x="${DOCK.x-14}" y="${DOCK.y-3}" width="28" height="6" fill="#7c5f2a"/>
    <text x="${DOCK.x-6}" y="${DOCK.y+22}" fill="#d8bf86" font-size="11">Dock</text>
+   ${wxNow()==="Fog"?`<rect width="800" height="500" fill="#dfe8e4" opacity=".22"/>`:""}${["Squalls","Rán's Temper"].includes(wxNow())?`<rect width="800" height="500" fill="#0a1416" opacity=".25"/>`:""}
    ${route}${nodes}
    <g transform="translate(${tp.x} ${tp.y})" aria-label="The Lucky Landshark"><path d="M-14 4 L14 4 L9 12 H-9 Z" fill="#a8823f" stroke="#2a1f0c"/><rect x="-5" y="-7" width="9" height="11" fill="#f4eee0" stroke="#2a1f0c"/><line x1="7" y1="-12" x2="7" y2="4" stroke="#2a1f0c" stroke-width="1.5"/></g>
   </svg>`;
@@ -1603,6 +1730,18 @@ function itemRow(it,where){
   return `<tr><td>🏺 <b>${esc(it.name)}</b> <span class="tag">${it.size}</span> <span class="tag">${it.condition}</span></td><td>${sp}</td><td>${it.sockets.length} sockets</td>
     <td class="row">${where==="storage"?`<button class="btn sm" data-tab="relics">Open</button>`:""}<button class="btn sm ghost" data-act="toss" data-where="${where}" data-id="${it.id}">Toss</button></td></tr>`;
 }
+const attemptDmg=n=>wxNow()==="Storm's Blessing"?0:(hasTag(n,"Storm Front")?3:0)+(HULL_DMG_ATTEMPT[wxNow()]||0);
+function weatherPanel(){
+  const w=wxNow(),W=WEATHER[w],t=S.clock.day,sure=certainDays();
+  const days=[];for(let i=0;i<FORECAST_DAYS;i++){const e=S.wx[t+i];if(!e)continue;
+    days.push(`<div class="fc ${e.sure?"":"guess"} ${i===0?"today":""}" title="${esc(e.w)}${e.sure?"":" (a guess — it can change)"}: ${esc(WEATHER[e.w].up)} / ${esc(WEATHER[e.w].down)}"><div class="tiny">${i===0?"Today":fmtDate(t+i,{weekday:"short"})}</div><div class="fci">${wxIcon(e.w)}</div><div class="tiny">${esc(e.w)}${e.sure?"":"?"}</div></div>`)}
+  return `<div class="panel"><h3>${wxIcon(w)} ${esc(w)} <span class="meta">${seasonOf(t)}</span></h3>
+    <p class="small">${W.up==="Neutral"?"A quiet day on the water — no upside, no downside.":`<b>Upside:</b> ${esc(W.up)}<br><b>Downside:</b> ${esc(W.down)}`}</p>
+    <div class="forecast">${days.join("")}</div>
+    <p class="tiny muted">The first ${sure} day${sure>1?"s are":" is"} certain${sure<FORECAST_DAYS?`; days marked ? are guesses that hold about ${GUESS_HOLDS}% of the time`:""}.${S.coldHidden&&S.coldHidden.day===t&&S.coldHidden.id?" One node is hidden by the Cold Snap today.":""}</p>
+    <details><summary class="small">Weather guide</summary>${Object.entries(WEATHER).map(([k,v])=>`<div class="small" style="margin-top:4px"><b>${v.icon} ${esc(k)}</b>${v.rare?' <span class="tag">rare</span>':""} <span class="muted">${v.up==="Neutral"?"Neutral":`${esc(v.up)} · ${esc(v.down)}`}</span></div>`).join("")}
+      <div class="tiny muted" style="margin-top:6px">Favored by season — Spring: ${SEASONS.Spring.join(", ")} · Summer: ${SEASONS.Summer.join(", ")} · Autumn: ${SEASONS.Autumn.join(", ")} · Winter: ${SEASONS.Winter.join(", ")}.</div></details></div>`;
+}
 const VIEWS={};
 VIEWS.sea=()=>{
   const sel=UI.selNode&&nodeById(UI.selNode),here=nodeById(S.location);
@@ -1611,16 +1750,21 @@ VIEWS.sea=()=>{
     const rev=revealed(sel);
     side=`<h3>Dredge Node <span class="meta">${sel.left}/${sel.attempts} attempts left</span></h3>
      <dl class="kv"><dt>Fuel</dt><dd><b>${cr(tripCost(sel))}</b> Metered Mana</dd><dt>Travel</dt><dd>${fmtDur(isLate()?Math.ceil(tripTime(sel)*1.25):tripTime(sel))}</dd>
-     <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag tier-${TAGS[t].tier}">${TAG_ICON[t]} ${esc(tagLabel(sel,t))}</span> <span class="muted small">${esc(tagLean(sel,t))}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${hasTag(sel,"Fog Bank")?"Fog hides every tag — ":""}${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}${sel.echo?`<br><span class="muted small">↺ Back for one more round (Echoing).</span>`:""}</dd></dl>
-     <hr class="rule"><div class="row">${S.location===sel.id?`<span class="tag ok">You're here</span>`:`<button class="btn brass" data-act="sail" data-id="${sel.id}">Sail here (${cr(tripCost(sel))})</button>`}</div>`;
+     <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag tier-${TAGS[t].tier}">${TAG_ICON[t]} ${esc(tagLabel(sel,t))}</span> <span class="muted small">${esc(tagLean(sel,t))}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${hasTag(sel,"Fog Bank")||wxNow()==="Fog"?"Fog hides every tag — ":""}${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}${sel.echo?`<br><span class="muted small">↺ Back for one more round (Echoing).</span>`:""}</dd></dl>
+     <hr class="rule"><div class="row">${S.location===sel.id?`<span class="tag ok">You're here</span>`:`<button class="btn brass" data-act="sail" data-id="${sel.id}" ${boatOut()?"disabled":""}>Sail here (${cr(tripCost(sel))})</button>`}${wxNow()==="Gale"&&S.location!==sel.id?`<span class="tiny muted">The Gale costs −10 Hull on the way out.</span>`:""}</div>`;
   }else side=`<h3>Dredge Nodes</h3><p class="muted small">Tap a glowing circle to see its fuel cost and any tags Finn can read. Every trip out costs Metered Mana; coming home is free.${S.freeTrip?" <b>Hrönn will carry your next trip out for free.</b>":""}</p>${tagGuide()}`;
   return `${dbBanner()}<div class="grid g2">
    <div><div class="mapbox">${mapSVG()}</div></div>
    <div class="grid">
     <div class="panel">${side}</div>
+    ${weatherPanel()}
     <div class="panel"><h3>${atHome()?"Docked at the lighthouse":here?"On station":"Open water"}</h3>
+      <div class="row" style="align-items:center;margin-bottom:8px"><span class="small">Hull <b>${S.hull}/${maxHull()}</b></span><div class="bar ${S.hull<=maxHull()*.3?"warnbar":""}" style="flex:1;min-width:120px"><i style="width:${Math.min(100,S.hull/maxHull()*100)}%"></i></div></div>
+      ${boatOut()?`<p class="small"><b>In the boathouse</b> after the salvage tow — back in the water ${fmtShort(S.boatOutUntil+1)}.</p>`:""}
+      ${atHome()&&S.hull<maxHull()?`<div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="repair" data-pts="10" ${canPay(Math.min(10,maxHull()-S.hull)*(cfg().repairCost??2))?"":"disabled"}>Repair +${Math.min(10,maxHull()-S.hull)} (${cr(Math.min(10,maxHull()-S.hull)*(cfg().repairCost??2))})</button><button class="btn sm" data-act="repair" ${canPay((maxHull()-S.hull)*(cfg().repairCost??2))?"":"disabled"}>Repair to full (${cr((maxHull()-S.hull)*(cfg().repairCost??2))})</button><span class="tiny muted">${cr(cfg().repairCost??2)} per point · +${hullRepair()} free overnight</span></div>`:""}
+      ${S.towOwed>0?`<p class="small">Salvage tow still owed: <b>${cr(S.towOwed)}</b> (paid off nightly).</p>`:""}
       <div class="row">
-       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (${fmtDur(here?attemptTime(here):20)})</button>
+       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (${fmtDur(here?attemptTime(here):20)}${here&&attemptDmg(here)?`, −${attemptDmg(here)} Hull`:""})</button>
        <button class="btn ghost" data-act="home" ${atHome()?"disabled":""}>Return home &amp; unload (30 min)</button>
       </div>
       ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${here.left} attempt${here.left===1?"":"s"} left before this node fades.</p>`:""}
@@ -1747,7 +1891,7 @@ function slotHTML(o,s,i,offer){
       if(!cur){
         const rc=roughFor(s);
         if(rc.length){const sp=s.req.spell;const t=sp?60+30*sp.level:60;const locked=sp&&!canCutSpell(sp);
-          body+=`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}" ${locked?"disabled title='Spell level or pattern not unlocked yet'":""}>Cut from rough (${fmtDur(t)}${sp?`, mana ${cr(spellCost(sp.level)*.2)}`:""})</button>`}
+          body+=`<button class="btn sm ghost" data-act="cutfor" data-o="${o.id}" data-i="${i}" ${locked?"disabled title='Spell level or pattern not unlocked yet'":""}>Cut from rough (${fmtDur(t)}${sp?`, mana ${cr(spellMana(sp.level))}`:""})</button>`}
         else if(s.kind==="gem"||s.kind==="replace")body+=`<span class="muted tiny">No qualifying rough — keep dredging.</span>`;
       }
       body+=`</div>`;
@@ -2058,6 +2202,8 @@ function snapshotMD(){
   P(`# Finn's Facets & Finds — Snapshot`);
   P(`**${fmtDate(S.clock.day)}, ${fmtTime(S.clock.min)}**${isLate()?" (working late)":""} · Finn is ${loc}.`);
   P(`Business account: ${cr(S.credits)} · Finn's wallet: ${cr(S.wallet)} · Lives: ${S.lives}/${livesCap()} · Hold ${used(S.hold)}/${holdCap()} · Storage ${used(S.storage)}/${storageCap()}`);
+  P(`*The Lucky Landshark*: Hull ${S.hull}/${maxHull()}${boatOut()?`, in the boathouse until ${fmtShort(S.boatOutUntil+1)}`:""}${S.towOwed>0?`, ${cr(S.towOwed)} salvage tow owed`:""}.`);
+  P(`Weather (${seasonOf(S.clock.day)}): ${wxNow()} — ${WEATHER[wxNow()].up==="Neutral"?"neutral":`${WEATHER[wxNow()].up}; ${WEATHER[wxNow()].down}`}. Forecast: ${[1,2,3,4,5,6].map(i=>S.wx[S.clock.day+i]).filter(Boolean).map((e,i)=>`${fmtDate(S.clock.day+i+1,{weekday:"short"})} ${e.w}${e.sure?"":" (guess)"}`).join(", ")}.`);
   P("");P(`## Finn`);
   P(`Level ${S.level} (${S.xp}/${xpToReach(S.level+1)} XP) · Combined Level ${combined}${S.statPoints?` · ${S.statPoints} unspent stat point${S.statPoints>1?"s":""}`:""}`);
   P(`- Insight ${st.insight} (${growthTier(st.insight)})`);P(`- Precision ${st.precision} (${growthTier(st.precision)})`);P(`- Renown ${st.renown} (${growthTier(st.renown)})`);
@@ -2101,7 +2247,7 @@ function snapshotMD(){
   for(const g of notable.slice(0,25))P(`  - ${g.quality} ${g.type}${g.state==="spell"?`, cut for ${g.spell.name}`:g.state==="plain"?`, ${g.cut} cut`:", rough"}${g.reserved?" (spoken for)":""}`);
   if(S.parts.length)P(`- Hallmark parts on hand: ${S.parts.map(p=>p.kind==="mounting"?`${p.metal} ${BASES[p.base].styles[p.slots]} ${BASE_LABEL[p.base].toLowerCase()}`:p.name).join("; ")}`);
   P("");P(`## Dredge Nodes`);
-  for(const n of S.nodes){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${n.left}/${n.attempts} attempts left${rv.length?`, tags: ${rv.map(t=>tagLabel(n,t)).join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
+  for(const n of visibleNodes()){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${n.left}/${n.attempts} attempts left${rv.length?`, tags: ${rv.map(t=>tagLabel(n,t)).join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
   const found=Object.keys(S.lifetime.found).length;
   P("");P(`## Career`);
   P(`- Commissions delivered: ${S.done.length}${S.done.length?`, most recent: ${S.done.slice(0,3).map(d=>`${d.title} for ${d.who} (${fmtShort(d.day)})`).join("; ")}`:""}`);
@@ -2200,6 +2346,7 @@ function dayMD(dn){
   const L=[],P=x=>L.push(x),by=t=>E.filter(e=>e.type===t),fac=k=>FAC[k]?FAC[k].name:k;
   const oline=e=>`${e.title} — ${fac(e.faction)} on behalf of ${e.who}${e.urgent?" (urgent)":""}`;
   P(`# Finn's Facets & Finds — ${fmtDate(dn,{weekday:"long",month:"long",day:"numeric",year:"numeric"})}`);
+  {const w=by("weather")[0];if(w)P(`*Weather: ${w.w}${seasonOf(dn)?` (${seasonOf(dn)})`:""}.*`)}
   if(!E.length&&!J.length&&!M.length&&!legacy.length){P("");P("Nothing was recorded for this day.");return L.join("\n")}
   const sec=(title,items)=>{if(items.length){P("");P(`## ${title}`);items.forEach(x=>P(`- ${x}`))}};
   sec("Commissions offered",by("offer").map(e=>`${oline(e)}, quoted ${cr(e.quote)}, expires ${fmtShort(e.expires)}`));
@@ -2208,7 +2355,7 @@ function dayMD(dn){
   sec("Passed, expired or cancelled",[...by("pass").map(e=>`Passed on ${oline(e)}`),...by("expire").map(e=>`Expired: ${oline(e)}`),...by("cancel").map(e=>`Cancelled: ${oline(e)}`),...by("missed").map(e=>`Missed the deadline on ${oline(e)}`)]);
   const trips=by("trip"),finds=by("find");
   sec("On the water",[...trips.map(e=>`Sailed out to a Dredge Node (${cr(e.cost)} Metered Mana)${e.tags&&e.tags.length?`, tags: ${e.tags.join(", ")}`:""}`),
-    ...finds.map(e=>`Hauled up ${e.what}${e.kept?"":" — no room, back over the side"}`),...by("coins").map(e=>`${e.why}: ${cr(e.amount)}`),...by("sister").map(e=>e.text),...by("home").map(e=>`Returned home${e.moved?` and unloaded ${e.moved} item${e.moved>1?"s":""}`:""}${e.left?` (${e.left} stayed in the hold)`:""}`)]);
+    ...finds.map(e=>`Hauled up ${e.what}${e.kept?"":" — no room, back over the side"}`),...by("coins").map(e=>`${e.why}: ${cr(e.amount)}`),...by("sister").map(e=>e.text),...by("sink").map(e=>e.life?`The Lucky Landshark sank (${e.why}). A life was spent; Finn and the boat respawned at the dock with the hold intact`:`The Lucky Landshark sank (${e.why}) with no lives left: the hold (${e.lost} item${e.lost===1?"":"s"}) went to Rán, salvage tow ${cr(e.tow)}${e.owed>0?` (${cr(e.owed)} owed)`:""}, boat out for 2 days`),...by("repair").map(e=>`Repaired the hull +${e.pts} (${cr(e.cost)})`),...by("home").map(e=>`Returned home${e.moved?` and unloaded ${e.moved} item${e.moved>1?"s":""}`:""}${e.left?` (${e.left} stayed in the hold)`:""}`)]);
   sec("Workroom",[...by("chisel").map(e=>`Chiseled a ${e.size} geode: ${e.got.join(", ")}`),...by("cut").map(e=>`Cut: ${e.text}`)]);
   sec("Relics",[...finds.filter(e=>e.relic).map(e=>`Found ${e.what}`),...by("activate").map(e=>`${e.name} woke up${e.full?" with Full Resonance":e.resonant?` (${e.resonant} Resonant)`:""}`),...by("consign").map(e=>`Consigned ${e.name} to the Registry Salon (Appraised ${cr(e.av)}, opening bid ${cr(e.opening)}, ${e.days} days)`),
     ...by("bid").map(e=>`New Salon bid on ${e.name}: ${cr(e.bid)} (+${cr(e.inc)})`),
@@ -2284,6 +2431,7 @@ document.addEventListener("click",e=>{
   const a=t.dataset.act,id=t.dataset.id,o=t.dataset.o,i=+t.dataset.i;
   if(t.tagName==="A")e.preventDefault();
   switch(a){
+   case"repair":repairHull(t.dataset.pts?+t.dataset.pts:null);break;
    case"sail":sail(id);break; case"dredge":dredge();break; case"home":returnHome();break;
    case"toss":toss(t.dataset.where,id);break; case"chisel":chisel(id);break;
    case"cutopen":UI.cutGem=id;render();$("#cutpanel")?.scrollIntoView({behavior:"smooth",block:"start"});break;
