@@ -787,7 +787,7 @@ function rollTag(exclude){ // tier first (Common 70 / Uncommon 22 / Rare 7 / Leg
   return pick(Object.keys(TAGS).filter(t=>!exclude.includes(t)));
 }
 function rollAttempts(tags,wave){
-  let a=rint(3,6)+(tags.includes("Rich")?2:0)+(tags.includes("Shark Run")?1:0)+(tags.includes("Kelp Forest")?2:0)+(wave==="Bylgja"?1:0)+eff("nodeAttempts");
+  let a=rint(3,6)+(tags.includes("Rich")?2:0)+(tags.includes("Shark Run")?1:0)+(tags.includes("Kelp Forest")?2:0)+(wave==="Bylgja"?1:0); // Better Dredge Rig is added live (nLeft/nAtt), so equipping it counts on nodes already on the map
   if(wave==="Dúfa")a*=2;
   if(wave==="Blóðughadda")a=Math.max(1,a-1);
   return a;
@@ -802,8 +802,12 @@ function genNode(spec){
     let tries=0;do{x=rint(290,760);y=rint(45,455);tries++}while(tries<60&&S.nodes.some(o=>Math.hypot(o.x-x,o.y-y)<95));
   }
   const attempts=rollAttempts(tags,wave);
-  return {id:nid("n"),x,y,tags,wave,attempts,left:attempts,revealOrder:shuffle(tags),firstGeode:false,arrived:false,echo:!!(spec&&spec.echo)};
+  return {id:nid("n"),x,y,tags,wave,attempts,left:attempts,live:true,revealOrder:shuffle(tags),firstGeode:false,arrived:false,echo:!!(spec&&spec.echo)};
 }
+// Attempts left / total, including Better Dredge Rig while it's equipped. (Nodes from before this change had the card baked in.)
+const nLeft=n=>Math.max(0,n.left+(n.live?eff("nodeAttempts"):0));
+const nAtt=n=>n.attempts+(n.live?eff("nodeAttempts"):0);
+function fadeSpent(){const gone=S.nodes.filter(n=>nLeft(n)<=0&&S.location!==n.id);if(gone.length){S.nodes=S.nodes.filter(n=>!gone.includes(n));addLog(`${gone.length} worked-out Dredge Node${gone.length>1?"s":""} faded without Better Dredge Rig's extra attempts.`)}}
 function fillNodes(){
   for(const sp of S.echoQueue||[])S.nodes.push(genNode(sp)); // Echoing nodes come back once, same spot, without Echoing
   S.echoQueue=[];
@@ -887,7 +891,7 @@ function haul(it){
   return what;
 }
 function dredge(){
-  const n=nodeById(S.location);if(!n||n.left<=0)return;
+  const n=nodeById(S.location);if(!n||nLeft(n)<=0)return;
   const w8=sisterOf(n),hef=w8==="Hefring";
   act(attemptTime(n),()=>{
     n.left--;gainXP(hef?2:1,"dredge attempt");
@@ -902,10 +906,10 @@ function dredge(){
     if(w8==="Bylgja")coin(.3,5,15,"Party leftovers from Bylgja");
     const dmg=(hasTag(n,"Storm Front")?3:0)+(HULL_DMG_ATTEMPT[wxNow()]||0);
     if(dmg&&hullHit(dmg,[hasTag(n,"Storm Front")?"Storm Front":null,HULL_DMG_ATTEMPT[wxNow()]?wxNow():null].filter(Boolean).join(" and "))){
-      if(n.left===0){S.nodes=S.nodes.filter(x=>x!==n);if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true})}}
+      if(nLeft(n)===0){S.nodes=S.nodes.filter(x=>x!==n);if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true})}}
       return;
     }
-    if(n.left===0){
+    if(nLeft(n)===0){
       S.nodes=S.nodes.filter(x=>x!==n);S.location="sea";S.pos={x:n.x,y:n.y};UI.selNode=null;
       if(hasTag(n,"Echoing")&&!n.echo){S.echoQueue=S.echoQueue||[];S.echoQueue.push({tags:n.tags.filter(t=>t!=="Echoing"),wave:n.wave,x:n.x,y:n.y,echo:true});addLog("The Dredge Node fades — but it hums like it'll be back tomorrow.")}
       else addLog("The Dredge Node fades. A new one will appear tomorrow.");
@@ -1416,6 +1420,7 @@ function equipCard(id,rank){
   if(over){const need=statUsed(over);c.equip=old;toast(`Not enough ${STAT_NAME[over]} — that loadout needs ${need}, you have ${S.stats[over]}. Raise ${STAT_NAME[over]} or unequip something.`);render();return}
   addLog(rank?`Equipped ${d.name} at rank ${rank}.`:`Unequipped ${d.name}.`);
   if(d.effect&&d.effect.type==="nodesVisible"&&rank>old)fillNodes();
+  if(d.effect&&d.effect.type==="nodeAttempts"&&rank<old)fadeSpent();
   if(S.hull>maxHull())S.hull=maxHull();
   if(d.effect&&d.effect.type==="forecastDays")ensureWeather();
   commit();
@@ -1686,7 +1691,7 @@ function mapSVG(){
       <circle class="halo" cx="${n.x}" cy="${n.y}" r="20"/>
       <circle class="ring" cx="${n.x}" cy="${n.y}" r="22"/>
       <text x="${n.x}" y="${n.y+4}">${esc(tagTxt.trim())}</text>
-      <text class="c" x="${n.x}" y="${n.y+(innerWidth<600?52:42)}">${tripCost(n)} Cr · ${n.left}/${n.attempts}</text></g>`}).join("");
+      <text class="c" x="${n.x}" y="${n.y+(innerWidth<600?52:42)}">${tripCost(n)} Cr · ${nLeft(n)}/${nAtt(n)}</text></g>`}).join("");
   const route=sel?`<line x1="${tp.x}" y1="${tp.y}" x2="${sel.x}" y2="${sel.y}" stroke="#ffe9a8" stroke-width="2" stroke-dasharray="6 6" opacity=".8"/>`:"";
   return `<svg viewBox="0 0 800 500" role="img" aria-label="Dredge Node map of Krakoan waters">
    <defs>
@@ -1748,7 +1753,7 @@ VIEWS.sea=()=>{
   let side="";
   if(sel){
     const rev=revealed(sel);
-    side=`<h3>Dredge Node <span class="meta">${sel.left}/${sel.attempts} attempts left</span></h3>
+    side=`<h3>Dredge Node <span class="meta">${nLeft(sel)}/${nAtt(sel)} attempts left</span></h3>
      <dl class="kv"><dt>Fuel</dt><dd><b>${cr(tripCost(sel))}</b> Metered Mana</dd><dt>Travel</dt><dd>${fmtDur(isLate()?Math.ceil(tripTime(sel)*1.25):tripTime(sel))}</dd>
      <dt>Tags</dt><dd>${rev.length?rev.map(t=>`<span class="tag tier-${TAGS[t].tier}">${TAG_ICON[t]} ${esc(tagLabel(sel,t))}</span> <span class="muted small">${esc(tagLean(sel,t))}</span>`).join("<br>"):""}${sel.tags.length>rev.length?`<span class="muted">${hasTag(sel,"Fog Bank")||wxNow()==="Fog"?"Fog hides every tag — ":""}${sel.tags.length-rev.length} hidden tag${sel.tags.length-rev.length>1?"s":""} — the price is a clue.</span>`:""}${sel.echo?`<br><span class="muted small">↺ Back for one more round (Echoing).</span>`:""}</dd></dl>
      <hr class="rule"><div class="row">${S.location===sel.id?`<span class="tag ok">You're here</span>`:`<button class="btn brass" data-act="sail" data-id="${sel.id}" ${boatOut()?"disabled":""}>Sail here (${cr(tripCost(sel))})</button>`}${wxNow()==="Gale"&&S.location!==sel.id?`<span class="tiny muted">The Gale costs −10 Hull on the way out.</span>`:""}</div>`;
@@ -1764,10 +1769,10 @@ VIEWS.sea=()=>{
       ${atHome()&&S.hull<maxHull()?`<div class="row" style="margin-bottom:8px"><button class="btn sm" data-act="repair" data-pts="10" ${canPay(Math.min(10,maxHull()-S.hull)*(cfg().repairCost??2))?"":"disabled"}>Repair +${Math.min(10,maxHull()-S.hull)} (${cr(Math.min(10,maxHull()-S.hull)*(cfg().repairCost??2))})</button><button class="btn sm" data-act="repair" ${canPay((maxHull()-S.hull)*(cfg().repairCost??2))?"":"disabled"}>Repair to full (${cr((maxHull()-S.hull)*(cfg().repairCost??2))})</button><span class="tiny muted">${cr(cfg().repairCost??2)} per point · +${hullRepair()} free overnight</span></div>`:""}
       ${S.towOwed>0?`<p class="small">Salvage tow still owed: <b>${cr(S.towOwed)}</b> (paid off nightly).</p>`:""}
       <div class="row">
-       <button class="btn" data-act="dredge" ${here&&here.left>0?"":"disabled"}>Dredge (${fmtDur(here?attemptTime(here):20)}${here&&attemptDmg(here)?`, −${attemptDmg(here)} Hull`:""})</button>
+       <button class="btn" data-act="dredge" ${here&&nLeft(here)>0?"":"disabled"}>Dredge (${fmtDur(here?attemptTime(here):20)}${here&&attemptDmg(here)?`, −${attemptDmg(here)} Hull`:""})</button>
        <button class="btn ghost" data-act="home" ${atHome()?"disabled":""}>Return home &amp; unload (30 min)</button>
       </div>
-      ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${here.left} attempt${here.left===1?"":"s"} left before this node fades.</p>`:""}
+      ${here?`<p class="small muted">Hold: ${used(S.hold)}/${holdCap()} space. ${nLeft(here)} attempt${nLeft(here)===1?"":"s"} left before this node fades.</p>`:""}
     </div>
     <div class="panel"><h3><i>The Lucky Landshark</i> — hold <span class="meta">${used(S.hold)}/${holdCap()}</span></h3>
       <div class="bar brass"><i style="width:${Math.min(100,used(S.hold)/holdCap()*100)}%"></i></div>
@@ -2247,7 +2252,7 @@ function snapshotMD(){
   for(const g of notable.slice(0,25))P(`  - ${g.quality} ${g.type}${g.state==="spell"?`, cut for ${g.spell.name}`:g.state==="plain"?`, ${g.cut} cut`:", rough"}${g.reserved?" (spoken for)":""}`);
   if(S.parts.length)P(`- Hallmark parts on hand: ${S.parts.map(p=>p.kind==="mounting"?`${p.metal} ${BASES[p.base].styles[p.slots]} ${BASE_LABEL[p.base].toLowerCase()}`:p.name).join("; ")}`);
   P("");P(`## Dredge Nodes`);
-  for(const n of visibleNodes()){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${n.left}/${n.attempts} attempts left${rv.length?`, tags: ${rv.map(t=>tagLabel(n,t)).join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
+  for(const n of visibleNodes()){const rv=revealed(n);P(`- ${cr(tripCost(n))} to reach, ${nLeft(n)}/${nAtt(n)} attempts left${rv.length?`, tags: ${rv.map(t=>tagLabel(n,t)).join(", ")}`:""}${n.tags.length>rv.length?`, ${n.tags.length-rv.length} hidden tag${n.tags.length-rv.length>1?"s":""}`:""}${S.location===n.id?" — Finn is here":""}`)}
   const found=Object.keys(S.lifetime.found).length;
   P("");P(`## Career`);
   P(`- Commissions delivered: ${S.done.length}${S.done.length?`, most recent: ${S.done.slice(0,3).map(d=>`${d.title} for ${d.who} (${fmtShort(d.day)})`).join("; ")}`:""}`);
